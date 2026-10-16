@@ -1,36 +1,48 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# HIGHBREED — HighCard / NTAG213 NFC Platform
 
-## Getting Started
+Linq-class digital business cards with physical NFC/QR HighCards, dual role dashboards, and visitor lead capture.
 
-First, run the development server:
+## Quick start
 
 ```bash
+npm install
 npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+Open [http://localhost:3000](http://localhost:3000) → **login**.
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+### Demo credentials (role auto-detected)
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+| Login ID | Password | Role |
+|----------|----------|------|
+| `admin` | `123123` | Admin console |
+| `pranay` | `pranay123` | Customer dashboard |
 
-## Learn More
+Only **admin** can create customer login IDs (`/admin/customers`).
 
-To learn more about Next.js, take a look at the following resources:
+## Client NFC flow (NTAG213)
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+1. **Factory** — Admin generates cards + unique `/c/{public_token}` URLs; write URL with NXP TagWriter; verify read-back → `PROGRAMMED` (still `UNCLAIMED`).
+2. **Router** — Tap/scan → lookup token:
+   - `UNCLAIMED` → activation / claim
+   - `ACTIVE` → customer public profile
+   - `BLOCKED` → security screen
+3. **Profile** — Save Contact (`.vcf`) + Share Your Info leads + reach/share metrics.
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+Programming API (admin session required):
 
-## Deploy on Vercel
+```http
+GET /api/admin/cards/{card_id}/programming-data
+POST /api/admin/cards/{card_id}/verify
+```
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+## Stack
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+- Next.js 14 App Router · Tailwind · Supabase · Cloudflare R2 · Vercel ISR
+
+## Layout
+
+- `/login` — credential login (no role picker)
+- `/admin` — sidebar SaaS: customers, card inventory, NFC programming
+- `/dashboard` — customer workspace: reaches, shares, leads, profile editor, devices
+- `/[username]` · `/c/[token]` — public mobile profile cards

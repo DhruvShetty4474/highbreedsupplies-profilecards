@@ -3,25 +3,46 @@
 @tailwind utilities;
 
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
+  --background: #f3f8f6;
+  --foreground: #071512;
+  --hb-ring: rgba(14, 124, 102, 0.35);
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
+* {
+  box-sizing: border-box;
+}
+
+html {
+  scroll-behavior: smooth;
 }
 
 body {
   color: var(--foreground);
   background: var(--background);
-  font-family: Arial, Helvetica, sans-serif;
+  min-height: 100dvh;
+  text-rendering: optimizeLegibility;
+  -webkit-font-smoothing: antialiased;
+}
+
+::selection {
+  background: rgba(61, 190, 139, 0.35);
+  color: #071512;
 }
 
 @layer utilities {
-  .text-balance {
-    text-wrap: balance;
+  .hb-shell {
+    @apply mx-auto w-full max-w-md;
+  }
+
+  .hb-glass {
+    @apply border border-white/70 bg-white/75 backdrop-blur-xl;
+  }
+
+  .hb-focus {
+    @apply focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--hb-ring)] focus-visible:ring-offset-2;
+  }
+
+  .safe-pb {
+    padding-bottom: calc(5.5rem + env(safe-area-inset-bottom));
   }
 }
