@@ -28,9 +28,24 @@ export default function AdminEditCustomerPage({ params }: Props) {
             Edit customer profile
           </h1>
           <p className="mt-1 text-sm text-hb-leaf">
-            You are editing <strong>@{profile.username}</strong> as admin. Changes
-            apply to their public HighCard page immediately (demo store).
+            Editing <strong>@{profile.username}</strong> — live preview on the
+            right shows the visitor / client view before you save.
           </p>
+        </div>
+        <div className="flex flex-wrap gap-2">
+          <Link
+            href={`/${profile.username}`}
+            target="_blank"
+            className="rounded-full border border-hb-sand bg-white px-4 py-2 text-xs font-semibold text-hb-ink"
+          >
+            Open visitor view
+          </Link>
+          <Link
+            href={`/admin/share/${profile.user_id}`}
+            className="rounded-full bg-hb-action px-4 py-2 text-xs font-semibold text-white"
+          >
+            Share this page
+          </Link>
         </div>
       </div>
       <ProfileWorkbench

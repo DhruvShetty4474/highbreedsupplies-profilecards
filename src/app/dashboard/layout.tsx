@@ -22,6 +22,12 @@ const items: SidebarItem[] = [
     description: "Avatar, media, social blocks",
   },
   {
+    href: "/dashboard/share",
+    label: "Share",
+    icon: "share",
+    description: "QR, link & Quick Share",
+  },
+  {
     href: "/dashboard/devices",
     label: "Cards / Devices",
     icon: "creditCard",

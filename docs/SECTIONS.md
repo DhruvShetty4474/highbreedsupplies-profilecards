@@ -9,8 +9,9 @@
 ## Admin console (`/admin`)
 | Section | Purpose |
 |---------|---------|
-| **Overview** | Live counts of cards, customers, programmed chips, leads. |
-| **Customers** | Create login IDs and **edit any customer profile** (media, social, bio). |
+| **Overview** | Quick Actions (Edit Profile, Share, …) plus live card/customer counts. |
+| **Customers** | Create login IDs and **edit any customer profile** with live visitor preview. |
+| **Share pages** | Customer list → per-page Share screen (QR, link, Offline, 8 options, Setup Quick Share). |
 | **Card inventory** | Generate batches of HighCards with unique `card_id` + secret `public_token` URLs. |
 | **NFC programming** | Pull the exact URL for NXP TagWriter, then verify read-back so a failed write stays unprogrammed. |
 | **Settings** | Sign out / support. |
@@ -29,6 +30,7 @@
 |---------|---------|
 | **Overview** | Reaches (page views), shares, contact saves, leads. Starts at 0 and grows with real use. |
 | **Profile editor** | Toggle blocks, edit avatar/banner, add **images / galleries / video / text / files**, social links. Live preview on the right. |
+| **Share** | Same Share tools as admin (QR, link, Offline, share options, Setup Quick Share). |
 | **Cards / Devices** | Claim an unclaimed programmed HighCard token to your account. |
 | **Leads** | People who submitted “Share Your Info” on your public page. |
 | **Settings** | Account info & sign out. |

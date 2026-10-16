@@ -8,6 +8,7 @@ import {
   LayoutDashboard,
   Menu,
   Settings,
+  Share2,
   Users,
   Wrench,
   X,
@@ -23,7 +24,8 @@ export type SidebarIconName =
   | "creditCard"
   | "users"
   | "settings"
-  | "cpu";
+  | "cpu"
+  | "share";
 
 const ICONS: Record<SidebarIconName, LucideIcon> = {
   layoutDashboard: LayoutDashboard,
@@ -32,6 +34,7 @@ const ICONS: Record<SidebarIconName, LucideIcon> = {
   users: Users,
   settings: Settings,
   cpu: Cpu,
+  share: Share2,
 };
 
 export type SidebarItem = {

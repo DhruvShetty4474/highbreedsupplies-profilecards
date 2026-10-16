@@ -62,14 +62,20 @@ export default function AdminCustomersPage() {
                     href={`/admin/customers/${c.user_id}`}
                     className="text-xs font-semibold text-hb-action"
                   >
-                    Edit profile
+                    Edit + preview
+                  </Link>
+                  <Link
+                    href={`/admin/share/${c.user_id}`}
+                    className="text-xs font-semibold text-hb-action"
+                  >
+                    Share
                   </Link>
                   <Link
                     href={`/${c.profile.username}`}
                     target="_blank"
                     className="text-xs font-semibold text-hb-leaf"
                   >
-                    View public
+                    Visitor view
                   </Link>
                 </div>
               </li>

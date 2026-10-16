@@ -22,6 +22,12 @@ const items: SidebarItem[] = [
     description: "Create & edit profiles",
   },
   {
+    href: "/admin/share",
+    label: "Share pages",
+    icon: "share",
+    description: "QR, link & Quick Share",
+  },
+  {
     href: "/admin/cards",
     label: "Card inventory",
     icon: "creditCard",
