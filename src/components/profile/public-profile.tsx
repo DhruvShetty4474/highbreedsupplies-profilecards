@@ -6,6 +6,7 @@ import { socialVisual } from "@/components/profile/social-styles";
 import { Button } from "@/components/ui/button";
 import {
   DEFAULT_PROFILE_LAYOUT,
+  type ContentBlock,
   type Profile,
   type ProfileLayout,
 } from "@/lib/types";
@@ -13,6 +14,7 @@ import { cn } from "@/lib/utils";
 import { motion } from "framer-motion";
 import {
   Download,
+  FileText,
   Globe,
   Mail,
   MapPin,
@@ -31,7 +33,102 @@ type Props = {
 };
 
 function resolveLayout(profile: Profile): ProfileLayout {
-  return { ...DEFAULT_PROFILE_LAYOUT, ...profile.layout };
+  const raw = { ...DEFAULT_PROFILE_LAYOUT, ...profile.layout } as ProfileLayout & {
+    show_video?: boolean;
+  };
+  const order = (raw.section_order ?? DEFAULT_PROFILE_LAYOUT.section_order).map(
+    (k) => ((k as string) === "video" ? "media" : k)
+  ) as ProfileLayout["section_order"];
+  return {
+    ...raw,
+    show_media: raw.show_media ?? raw.show_video ?? true,
+    section_order: order,
+  };
+}
+
+function MediaBlocks({
+  blocks,
+  preview,
+}: {
+  blocks: ContentBlock[];
+  preview: boolean;
+}) {
+  const list = [...blocks]
+    .filter((b) => b.visible !== false)
+    .sort((a, b) => (a.sort_order ?? 0) - (b.sort_order ?? 0));
+
+  if (list.length === 0) return null;
+
+  return (
+    <div className="space-y-4">
+      {list.map((block) => (
+        <article
+          key={block.id}
+          className="overflow-hidden rounded-2xl border border-white/80 bg-white/70 shadow-soft backdrop-blur-md"
+        >
+          {block.title ? (
+            <div className="border-b border-hb-sand/50 px-5 py-3">
+              <h3 className="text-xs font-semibold uppercase tracking-[0.16em] text-hb-leaf">
+                {block.title}
+              </h3>
+            </div>
+          ) : null}
+          <div className="p-4">
+            {block.type === "text" ? (
+              <p className="text-[15px] leading-7 text-hb-forest">
+                {block.body}
+              </p>
+            ) : null}
+            {block.type === "image" && block.url ? (
+              // eslint-disable-next-line @next/next/no-img-element
+              <img
+                src={block.url}
+                alt={block.title}
+                className="w-full rounded-xl object-cover"
+              />
+            ) : null}
+            {block.type === "gallery" && block.urls?.length ? (
+              <div className="grid grid-cols-2 gap-2">
+                {block.urls.map((src) => (
+                  // eslint-disable-next-line @next/next/no-img-element
+                  <img
+                    key={src}
+                    src={src}
+                    alt=""
+                    className="aspect-square w-full rounded-xl object-cover"
+                  />
+                ))}
+              </div>
+            ) : null}
+            {block.type === "video" && block.url ? (
+              <video
+                className="aspect-video w-full rounded-xl object-cover"
+                controls={!preview}
+                muted={preview}
+                playsInline
+                loop
+                autoPlay={preview}
+                preload="metadata"
+              >
+                <source src={block.url} />
+              </video>
+            ) : null}
+            {block.type === "file" && block.url ? (
+              <a
+                href={preview ? undefined : block.url}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="inline-flex items-center gap-2 rounded-xl bg-hb-mist px-4 py-3 text-sm font-semibold text-hb-action"
+              >
+                <FileText className="h-4 w-4" />
+                {block.title || "Download file"}
+              </a>
+            ) : null}
+          </div>
+        </article>
+      ))}
+    </div>
+  );
 }
 
 const fade = (delay = 0) => ({
@@ -155,29 +252,32 @@ export function PublicProfileView({
           </p>
         </motion.section>
       ) : null,
-    video:
-      layout.show_video && profile.video_url ? (
-        <motion.section
-          key="video"
-          {...fade(0.32)}
-          className="overflow-hidden rounded-2xl border border-white/80 bg-hb-ink shadow-soft"
-        >
-          <div className="border-b border-white/10 px-5 py-3">
-            <h2 className="text-xs font-semibold uppercase tracking-[0.18em] text-hb-mint">
-              Introduction
-            </h2>
-          </div>
-          <video
-            className="aspect-video w-full object-cover"
-            controls={!preview}
-            muted={preview}
-            playsInline
-            loop
-            autoPlay={preview}
-            preload="metadata"
-          >
-            <source src={profile.video_url} />
-          </video>
+    media:
+      layout.show_media &&
+      ((profile.content_blocks && profile.content_blocks.length > 0) ||
+        profile.video_url) ? (
+        <motion.section key="media" {...fade(0.32)} className="space-y-3">
+          <h2 className="px-1 text-xs font-semibold uppercase tracking-[0.18em] text-hb-leaf">
+            Media & content
+          </h2>
+          <MediaBlocks
+            blocks={
+              profile.content_blocks?.length
+                ? profile.content_blocks
+                : profile.video_url
+                  ? [
+                      {
+                        id: "legacy-video",
+                        type: "video",
+                        title: "Introduction",
+                        url: profile.video_url,
+                        visible: true,
+                      },
+                    ]
+                  : []
+            }
+            preview={preview}
+          />
         </motion.section>
       ) : null,
     social:

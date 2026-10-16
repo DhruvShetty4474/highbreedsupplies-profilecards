@@ -6,6 +6,7 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import {
   DEFAULT_PROFILE_LAYOUT,
+  type ContentBlock,
   type Profile,
   type ProfileLayout,
   type SocialLink,
@@ -17,6 +18,7 @@ import {
   ExternalLink,
   Eye,
   EyeOff,
+  ImageIcon,
   Plus,
   Save,
   Trash2,
@@ -29,23 +31,26 @@ const LAYOUT_TOGGLES: {
   label: string;
   hint: string;
 }[] = [
-  { key: "show_hero", label: "Hero (avatar + banner)", hint: "Cover & circular avatar" },
-  { key: "show_save_contact", label: "Save Contact CTA", hint: "Downloads .vcf" },
-  { key: "show_exchange_contact", label: "Exchange Contact CTA", hint: "Opens lead form" },
-  { key: "show_quick_actions", label: "Quick Connections", hint: "Call / Text / Email / Maps / Web" },
-  { key: "show_about", label: "About Me block", hint: "Bio text panel" },
-  { key: "show_video", label: "Video introduction", hint: "R2 / CDN video" },
-  { key: "show_social", label: "Social Channels", hint: "Adaptive icon grid" },
-  { key: "show_business", label: "Business Information", hint: "Email / phone / location" },
+  { key: "show_hero", label: "Hero (avatar + banner)", hint: "Top cover & photo" },
+  { key: "show_save_contact", label: "Save Contact", hint: "Downloads .vcf" },
+  { key: "show_exchange_contact", label: "Exchange Contact", hint: "Opens lead form" },
+  { key: "show_quick_actions", label: "Quick connections", hint: "Call / Text / Email / Maps / Web" },
+  { key: "show_about", label: "About Me", hint: "Bio panel" },
+  { key: "show_media", label: "Media & content", hint: "Images, gallery, video, text, files" },
+  { key: "show_social", label: "Social channels", hint: "Icon grid" },
+  { key: "show_business", label: "Business info", hint: "Email / phone / location" },
   { key: "show_lead_banner", label: "Share Your Info banner", hint: "Sticky footer CTA" },
 ];
 
 export function ProfileWorkbench({
   profile,
   publicUrl,
+  adminUserId,
 }: {
   profile: Profile;
   publicUrl: string;
+  /** When set, saves are applied to this customer (admin edit mode). */
+  adminUserId?: string;
 }) {
   const [draft, setDraft] = useState(profile);
   const [links, setLinks] = useState<SocialLink[]>(
@@ -55,16 +60,33 @@ export function ProfileWorkbench({
       sort_order: l.sort_order ?? i,
     }))
   );
+  const [blocks, setBlocks] = useState<ContentBlock[]>(
+    (profile.content_blocks ?? []).map((b, i) => ({
+      ...b,
+      visible: b.visible !== false,
+      sort_order: b.sort_order ?? i,
+    }))
+  );
   const [layout, setLayout] = useState<ProfileLayout>({
     ...DEFAULT_PROFILE_LAYOUT,
     ...profile.layout,
+    section_order:
+      profile.layout?.section_order?.map((k) =>
+        // migrate legacy "video" key
+        (k as string) === "video" ? "media" : k
+      ) as ProfileLayout["section_order"] ?? DEFAULT_PROFILE_LAYOUT.section_order,
   });
   const [pending, setPending] = useState(false);
   const [message, setMessage] = useState<string | null>(null);
 
   const liveProfile = useMemo<Profile>(
-    () => ({ ...draft, social_links: links, layout }),
-    [draft, links, layout]
+    () => ({
+      ...draft,
+      social_links: links,
+      content_blocks: blocks,
+      layout,
+    }),
+    [draft, links, blocks, layout]
   );
 
   async function save(e: FormEvent) {
@@ -74,7 +96,13 @@ export function ProfileWorkbench({
     const res = await fetch("/api/profile", {
       method: "PATCH",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ ...draft, social_links: links, layout }),
+      body: JSON.stringify({
+        ...(adminUserId ? { user_id: adminUserId } : {}),
+        ...draft,
+        social_links: links,
+        content_blocks: blocks,
+        layout,
+      }),
     });
     setPending(false);
     if (!res.ok) {
@@ -82,7 +110,11 @@ export function ProfileWorkbench({
       setMessage(body.error || "Save failed");
       return;
     }
-    setMessage("Profile saved. Public page will refresh via ISR shortly.");
+    setMessage(
+      adminUserId
+        ? "Customer profile saved."
+        : "Profile saved. Public page updates shortly."
+    );
   }
 
   function updateLink(index: number, patch: Partial<SocialLink>) {
@@ -93,24 +125,20 @@ export function ProfileWorkbench({
     });
   }
 
-  function moveLink(index: number, dir: -1 | 1) {
-    setLinks((prev) => {
-      const target = index + dir;
-      if (target < 0 || target >= prev.length) return prev;
+  function updateBlock(index: number, patch: Partial<ContentBlock>) {
+    setBlocks((prev) => {
       const next = [...prev];
-      [next[index], next[target]] = [next[target], next[index]];
-      return next.map((l, i) => ({ ...l, sort_order: i }));
+      next[index] = { ...next[index], ...patch };
+      return next;
     });
   }
 
-  function moveSection(index: number, dir: -1 | 1) {
-    setLayout((prev) => {
-      const order = [...prev.section_order];
-      const target = index + dir;
-      if (target < 0 || target >= order.length) return prev;
-      [order[index], order[target]] = [order[target], order[index]];
-      return { ...prev, section_order: order };
-    });
+  function move<T>(list: T[], index: number, dir: -1 | 1) {
+    const target = index + dir;
+    if (target < 0 || target >= list.length) return list;
+    const next = [...list];
+    [next[index], next[target]] = [next[target], next[index]];
+    return next;
   }
 
   return (
@@ -122,14 +150,14 @@ export function ProfileWorkbench({
         <header className="mb-8 flex flex-wrap items-start justify-between gap-4">
           <div>
             <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-hb-leaf">
-              Profile workbench
+              {adminUserId ? "Admin · customer editor" : "Profile workbench"}
             </p>
             <h1 className="mt-1 font-display text-4xl text-hb-ink">
               Block editor
             </h1>
             <p className="mt-2 max-w-md text-sm leading-relaxed text-hb-leaf">
-              Toggle, reorder, and edit every public block. The desktop preview
-              on the right updates live.
+              Toggle sections, add images/galleries/video/text, and reorder
+              social tiles. Preview updates live on the right.
             </p>
           </div>
           <div className="flex flex-wrap gap-2">
@@ -153,15 +181,9 @@ export function ProfileWorkbench({
         </header>
 
         <div className="space-y-6 overflow-y-auto pb-28 xl:pb-10">
-          {/* Layout visibility */}
-          <section className="rounded-2xl border border-hb-sand/80 bg-white/90 p-5 shadow-soft backdrop-blur-md">
-            <h2 className="text-sm font-semibold text-hb-ink">
-              Visible blocks
-            </h2>
-            <p className="mt-1 text-xs text-hb-leaf">
-              Hide or show layers on the public profile.
-            </p>
-            <ul className="mt-4 divide-y divide-hb-sand/70">
+          <section className="rounded-2xl border border-hb-sand/80 bg-white/90 p-5 shadow-soft">
+            <h2 className="text-sm font-semibold text-hb-ink">Visible blocks</h2>
+            <ul className="mt-3 divide-y divide-hb-sand/70">
               {LAYOUT_TOGGLES.map((item) => {
                 const on = layout[item.key];
                 return (
@@ -202,44 +224,7 @@ export function ProfileWorkbench({
             </ul>
           </section>
 
-          {/* Section order */}
-          <section className="rounded-2xl border border-hb-sand/80 bg-white/90 p-5 shadow-soft backdrop-blur-md">
-            <h2 className="text-sm font-semibold text-hb-ink">
-              Content section order
-            </h2>
-            <ul className="mt-3 space-y-2">
-              {layout.section_order.map((key, index) => (
-                <li
-                  key={key}
-                  className="flex items-center justify-between rounded-xl border border-hb-sand/70 bg-hb-fog/50 px-3 py-2.5"
-                >
-                  <span className="text-sm font-medium capitalize text-hb-ink">
-                    {key === "social" ? "Social Channels" : key}
-                  </span>
-                  <div className="flex gap-1">
-                    <button
-                      type="button"
-                      className="grid h-8 w-8 place-items-center rounded-lg border border-hb-sand bg-white"
-                      onClick={() => moveSection(index, -1)}
-                      aria-label="Move up"
-                    >
-                      <ArrowUp className="h-3.5 w-3.5" />
-                    </button>
-                    <button
-                      type="button"
-                      className="grid h-8 w-8 place-items-center rounded-lg border border-hb-sand bg-white"
-                      onClick={() => moveSection(index, 1)}
-                      aria-label="Move down"
-                    >
-                      <ArrowDown className="h-3.5 w-3.5" />
-                    </button>
-                  </div>
-                </li>
-              ))}
-            </ul>
-          </section>
-
-          <section className="rounded-2xl border border-hb-sand/80 bg-white/90 p-5 shadow-soft backdrop-blur-md">
+          <section className="rounded-2xl border border-hb-sand/80 bg-white/90 p-5 shadow-soft">
             <h2 className="text-sm font-semibold text-hb-ink">Identity</h2>
             <div className="mt-3 grid gap-3 sm:grid-cols-2">
               <Input
@@ -287,9 +272,9 @@ export function ProfileWorkbench({
             </div>
           </section>
 
-          <section className="rounded-2xl border border-hb-sand/80 bg-white/90 p-5 shadow-soft backdrop-blur-md">
+          <section className="rounded-2xl border border-hb-sand/80 bg-white/90 p-5 shadow-soft">
             <h2 className="text-sm font-semibold text-hb-ink">
-              Media — Avatar, Cover, Video
+              Hero media
             </h2>
             <div className="mt-3 grid gap-3">
               <Input
@@ -298,7 +283,6 @@ export function ProfileWorkbench({
                 onChange={(e) =>
                   setDraft({ ...draft, avatar_url: e.target.value })
                 }
-                hint="High-resolution circular avatar (R2 recommended)"
               />
               <Input
                 label="Cover banner URL"
@@ -307,27 +291,169 @@ export function ProfileWorkbench({
                   setDraft({ ...draft, banner_url: e.target.value })
                 }
               />
-              <Input
-                label="Video introduction URL"
-                value={draft.video_url ?? ""}
-                onChange={(e) =>
-                  setDraft({ ...draft, video_url: e.target.value })
-                }
-                hint="Loop-friendly intro — Cloudflare R2 for zero egress"
-              />
             </div>
           </section>
 
-          <section className="rounded-2xl border border-hb-sand/80 bg-white/90 p-5 shadow-soft backdrop-blur-md">
+          <section className="rounded-2xl border border-hb-sand/80 bg-white/90 p-5 shadow-soft">
             <div className="flex items-center justify-between gap-2">
               <div>
                 <h2 className="text-sm font-semibold text-hb-ink">
-                  Social & custom links
+                  Content blocks
                 </h2>
                 <p className="text-xs text-hb-leaf">
-                  Toggle visibility and reorder tiles.
+                  Text, image, gallery, video, or file links.
                 </p>
               </div>
+              <div className="flex flex-wrap gap-1">
+                {(
+                  [
+                    ["text", "Text"],
+                    ["image", "Image"],
+                    ["gallery", "Gallery"],
+                    ["video", "Video"],
+                    ["file", "File"],
+                  ] as const
+                ).map(([type, label]) => (
+                  <Button
+                    key={type}
+                    type="button"
+                    size="sm"
+                    variant="secondary"
+                    onClick={() =>
+                      setBlocks((prev) => [
+                        ...prev,
+                        {
+                          id: `b_${Date.now()}_${type}`,
+                          type,
+                          title: label,
+                          body: type === "text" ? "" : undefined,
+                          url: type !== "gallery" && type !== "text" ? "https://" : undefined,
+                          urls:
+                            type === "gallery"
+                              ? ["https://", "https://"]
+                              : undefined,
+                          sort_order: prev.length,
+                          visible: true,
+                        },
+                      ])
+                    }
+                  >
+                    <Plus className="h-3 w-3" />
+                    {label}
+                  </Button>
+                ))}
+              </div>
+            </div>
+            <div className="mt-4 space-y-3">
+              {blocks.length === 0 ? (
+                <p className="rounded-xl border border-dashed border-hb-sand px-4 py-6 text-center text-sm text-hb-leaf">
+                  <ImageIcon className="mx-auto mb-2 h-5 w-5" />
+                  No content blocks yet — add an image or text above.
+                </p>
+              ) : null}
+              {blocks.map((block, index) => (
+                <div
+                  key={block.id}
+                  className="rounded-xl border border-hb-sand/70 bg-hb-fog/50 p-3"
+                >
+                  <div className="mb-2 flex items-center justify-between gap-2">
+                    <span className="rounded-full bg-white px-2.5 py-1 text-[11px] font-semibold uppercase tracking-wide text-hb-forest">
+                      {block.type}
+                    </span>
+                    <div className="flex gap-1">
+                      <button
+                        type="button"
+                        className="grid h-8 w-8 place-items-center rounded-lg border border-hb-sand bg-white"
+                        onClick={() =>
+                          setBlocks((prev) =>
+                            move(prev, index, -1).map((b, i) => ({
+                              ...b,
+                              sort_order: i,
+                            }))
+                          )
+                        }
+                      >
+                        <ArrowUp className="h-3.5 w-3.5" />
+                      </button>
+                      <button
+                        type="button"
+                        className="grid h-8 w-8 place-items-center rounded-lg border border-hb-sand bg-white"
+                        onClick={() =>
+                          setBlocks((prev) =>
+                            move(prev, index, 1).map((b, i) => ({
+                              ...b,
+                              sort_order: i,
+                            }))
+                          )
+                        }
+                      >
+                        <ArrowDown className="h-3.5 w-3.5" />
+                      </button>
+                      <button
+                        type="button"
+                        className="grid h-8 w-8 place-items-center rounded-lg border border-hb-sand text-hb-danger"
+                        onClick={() =>
+                          setBlocks((prev) =>
+                            prev.filter((_, i) => i !== index)
+                          )
+                        }
+                      >
+                        <Trash2 className="h-3.5 w-3.5" />
+                      </button>
+                    </div>
+                  </div>
+                  <div className="grid gap-2">
+                    <Input
+                      label="Title"
+                      value={block.title}
+                      onChange={(e) =>
+                        updateBlock(index, { title: e.target.value })
+                      }
+                    />
+                    {block.type === "text" ? (
+                      <Textarea
+                        label="Body"
+                        value={block.body ?? ""}
+                        onChange={(e) =>
+                          updateBlock(index, { body: e.target.value })
+                        }
+                      />
+                    ) : null}
+                    {block.type === "gallery" ? (
+                      <Textarea
+                        label="Image URLs (one per line)"
+                        value={(block.urls ?? []).join("\n")}
+                        onChange={(e) =>
+                          updateBlock(index, {
+                            urls: e.target.value
+                              .split("\n")
+                              .map((s) => s.trim())
+                              .filter(Boolean),
+                          })
+                        }
+                      />
+                    ) : block.type !== "text" ? (
+                      <Input
+                        label={
+                          block.type === "file" ? "File URL" : "Media URL"
+                        }
+                        value={block.url ?? ""}
+                        onChange={(e) =>
+                          updateBlock(index, { url: e.target.value })
+                        }
+                      />
+                    ) : null}
+                  </div>
+                </div>
+              ))}
+            </div>
+          </section>
+
+          <section className="rounded-2xl border border-hb-sand/80 bg-white/90 p-5 shadow-soft">
+            <div className="flex items-center justify-between gap-2">
+              <h2 className="text-sm font-semibold text-hb-ink">
+                Social links
+              </h2>
               <Button
                 type="button"
                 size="sm"
@@ -356,52 +482,44 @@ export function ProfileWorkbench({
                   key={link.id}
                   className="rounded-xl border border-hb-sand/70 bg-hb-fog/50 p-3"
                 >
-                  <div className="mb-2 flex items-center justify-between gap-2">
+                  <div className="mb-2 flex justify-end gap-1">
                     <button
                       type="button"
+                      className="grid h-8 w-8 place-items-center rounded-lg border border-hb-sand bg-white"
                       onClick={() =>
-                        updateLink(index, { visible: link.visible === false })
+                        setLinks((prev) =>
+                          move(prev, index, -1).map((l, i) => ({
+                            ...l,
+                            sort_order: i,
+                          }))
+                        )
                       }
-                      className={`inline-flex h-8 items-center gap-1 rounded-full px-2.5 text-[11px] font-semibold ${
-                        link.visible !== false
-                          ? "bg-hb-action text-white"
-                          : "bg-white text-hb-leaf"
-                      }`}
                     >
-                      {link.visible !== false ? (
-                        <Eye className="h-3 w-3" />
-                      ) : (
-                        <EyeOff className="h-3 w-3" />
-                      )}
-                      {link.visible !== false ? "Visible" : "Hidden"}
+                      <ArrowUp className="h-3.5 w-3.5" />
                     </button>
-                    <div className="flex gap-1">
-                      <button
-                        type="button"
-                        className="grid h-8 w-8 place-items-center rounded-lg border border-hb-sand bg-white"
-                        onClick={() => moveLink(index, -1)}
-                      >
-                        <ArrowUp className="h-3.5 w-3.5" />
-                      </button>
-                      <button
-                        type="button"
-                        className="grid h-8 w-8 place-items-center rounded-lg border border-hb-sand bg-white"
-                        onClick={() => moveLink(index, 1)}
-                      >
-                        <ArrowDown className="h-3.5 w-3.5" />
-                      </button>
-                      <button
-                        type="button"
-                        className="grid h-8 w-8 place-items-center rounded-lg border border-hb-sand text-hb-danger"
-                        onClick={() =>
-                          setLinks((prev) =>
-                            prev.filter((_, i) => i !== index)
-                          )
-                        }
-                      >
-                        <Trash2 className="h-3.5 w-3.5" />
-                      </button>
-                    </div>
+                    <button
+                      type="button"
+                      className="grid h-8 w-8 place-items-center rounded-lg border border-hb-sand bg-white"
+                      onClick={() =>
+                        setLinks((prev) =>
+                          move(prev, index, 1).map((l, i) => ({
+                            ...l,
+                            sort_order: i,
+                          }))
+                        )
+                      }
+                    >
+                      <ArrowDown className="h-3.5 w-3.5" />
+                    </button>
+                    <button
+                      type="button"
+                      className="grid h-8 w-8 place-items-center rounded-lg border border-hb-sand text-hb-danger"
+                      onClick={() =>
+                        setLinks((prev) => prev.filter((_, i) => i !== index))
+                      }
+                    >
+                      <Trash2 className="h-3.5 w-3.5" />
+                    </button>
                   </div>
                   <div className="grid gap-2 sm:grid-cols-2">
                     <Input
@@ -412,7 +530,7 @@ export function ProfileWorkbench({
                       }
                     />
                     <Input
-                      label="URL / path"
+                      label="URL"
                       value={link.path}
                       onChange={(e) =>
                         updateLink(index, { path: e.target.value })
@@ -425,7 +543,7 @@ export function ProfileWorkbench({
           </section>
         </div>
 
-        <div className="sticky bottom-0 z-10 mt-auto border-t border-hb-sand/80 bg-[#F3F8F6]/95 py-4 backdrop-blur">
+        <div className="sticky bottom-0 z-10 mt-auto border-t border-hb-sand/80 bg-[#EEF4F1]/95 py-4 backdrop-blur">
           <Button type="submit" disabled={pending}>
             <Save className="h-4 w-4" />
             {pending ? "Saving…" : "Save profile"}
@@ -444,15 +562,6 @@ export function ProfileWorkbench({
           <PublicProfile profile={liveProfile} embedded />
         </div>
       </aside>
-
-      <div className="mt-10 xl:hidden">
-        <p className="mb-3 text-[11px] font-semibold uppercase tracking-[0.18em] text-hb-leaf">
-          Live preview
-        </p>
-        <div className="flex justify-center rounded-3xl bg-hb-forest/95 py-10">
-          <PublicProfile profile={liveProfile} embedded />
-        </div>
-      </div>
     </div>
   );
 }

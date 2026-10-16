@@ -88,10 +88,11 @@ export default async function LoginPage({
               <>
                 <br />
                 <span className="mt-2 inline-block text-xs">
-                  Demo admin: <strong>admin</strong> / <strong>123123</strong>
+                  Admin: <strong>admin</strong> / <strong>123123</strong>
                   {" · "}
-                  Sample customer: <strong>pranay</strong> /{" "}
-                  <strong>pranay123</strong>
+                  Pranay: <strong>pranay</strong> / <strong>pranay123</strong>
+                  {" · "}
+                  Demo: <strong>demo</strong> / <strong>demo123</strong>
                 </span>
               </>
             ) : null}

@@ -16,9 +16,12 @@ Open [http://localhost:3000](http://localhost:3000) → **login**.
 | Login ID | Password | Role |
 |----------|----------|------|
 | `admin` | `123123` | Admin console |
-| `pranay` | `pranay123` | Customer dashboard |
+| `pranay` | `pranay123` | Customer (Highbreed Supplies) |
+| `demo` | `demo123` | Customer (Demo account) |
 
-Only **admin** can create customer login IDs (`/admin/customers`).
+Only **admin** can create customers and edit their profiles (`/admin/customers` → Edit profile).
+
+See [docs/SECTIONS.md](docs/SECTIONS.md) for what each screen is for.
 
 ## Client NFC flow (NTAG213)
 

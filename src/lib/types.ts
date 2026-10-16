@@ -21,6 +21,20 @@ export type SocialLink = {
   visible?: boolean;
 };
 
+/** Rich content blocks beyond social links (images, text, video, files). */
+export type ContentBlock = {
+  id: string;
+  type: "text" | "image" | "gallery" | "video" | "file";
+  title: string;
+  body?: string;
+  /** Single media / file URL */
+  url?: string;
+  /** Gallery image URLs */
+  urls?: string[];
+  sort_order?: number;
+  visible?: boolean;
+};
+
 /** Visibility + order for public profile sections */
 export type ProfileLayout = {
   show_hero: boolean;
@@ -28,14 +42,11 @@ export type ProfileLayout = {
   show_exchange_contact: boolean;
   show_quick_actions: boolean;
   show_about: boolean;
-  show_video: boolean;
+  show_media: boolean;
   show_social: boolean;
   show_business: boolean;
   show_lead_banner: boolean;
-  /** Section order keys */
-  section_order: Array<
-    "about" | "video" | "social" | "business"
-  >;
+  section_order: Array<"about" | "media" | "social" | "business">;
 };
 
 export const DEFAULT_PROFILE_LAYOUT: ProfileLayout = {
@@ -44,11 +55,11 @@ export const DEFAULT_PROFILE_LAYOUT: ProfileLayout = {
   show_exchange_contact: true,
   show_quick_actions: true,
   show_about: true,
-  show_video: true,
+  show_media: true,
   show_social: true,
   show_business: true,
   show_lead_banner: true,
-  section_order: ["about", "video", "social", "business"],
+  section_order: ["about", "media", "social", "business"],
 };
 
 export type Profile = {
@@ -60,10 +71,12 @@ export type Profile = {
   bio: string;
   avatar_url: string | null;
   banner_url: string | null;
+  /** @deprecated prefer content_blocks video entries */
   video_url: string | null;
   phone: string | null;
   email: string | null;
   social_links: SocialLink[];
+  content_blocks?: ContentBlock[];
   layout?: ProfileLayout;
   role: AppRole;
   theme?: { accent?: string; surface?: string };
@@ -76,7 +89,6 @@ export type Card = {
   public_token: string;
   nfc_url: string;
   qr_url: string;
-  /** Optional physical NTAG213 UID — not used as auth by itself */
   nfc_uid?: string | null;
   status: CardStatus;
   user_id: string | null;

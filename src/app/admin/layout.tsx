@@ -8,11 +8,37 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 
 const items: SidebarItem[] = [
-  { href: "/admin", label: "Overview", icon: "layoutDashboard", exact: true },
-  { href: "/admin/customers", label: "Customers", icon: "users" },
-  { href: "/admin/cards", label: "Card Inventory", icon: "creditCard" },
-  { href: "/admin/programming", label: "NFC Programming", icon: "cpu" },
-  { href: "/admin/settings", label: "Settings", icon: "settings" },
+  {
+    href: "/admin",
+    label: "Overview",
+    icon: "layoutDashboard",
+    exact: true,
+    description: "Card & customer metrics",
+  },
+  {
+    href: "/admin/customers",
+    label: "Customers",
+    icon: "users",
+    description: "Create & edit profiles",
+  },
+  {
+    href: "/admin/cards",
+    label: "Card inventory",
+    icon: "creditCard",
+    description: "Generate NFC/QR batches",
+  },
+  {
+    href: "/admin/programming",
+    label: "NFC programming",
+    icon: "cpu",
+    description: "Write URL + verify chip",
+  },
+  {
+    href: "/admin/settings",
+    label: "Settings",
+    icon: "settings",
+    description: "Session & support",
+  },
 ];
 
 export default async function AdminLayout({
@@ -25,29 +51,30 @@ export default async function AdminLayout({
   if (profile.role !== "admin") redirect("/dashboard");
 
   return (
-    <div className="min-h-dvh bg-[#F3F8F6]">
+    <div className="min-h-dvh bg-[#EEF4F1]">
       <SaasSidebar
-        title="Admin console"
+        title="Admin"
+        subtitle="Provision HighCards, create customers, and program NTAG213 chips."
         items={items}
         footer={
           <div className="space-y-3">
             <div>
-              <p className="truncate text-sm font-semibold text-hb-ink">
+              <p className="truncate text-sm font-semibold text-white">
                 {profile.full_name}
               </p>
-              <p className="text-xs text-hb-leaf">Administrator</p>
+              <p className="text-xs text-white/55">Administrator</p>
             </div>
             <Link
               href="/dashboard"
-              className="block text-xs font-semibold text-hb-action"
+              className="block text-xs font-semibold text-hb-mint"
             >
-              Client workspace →
+              Preview customer view →
             </Link>
-            <SignOutButton />
+            <SignOutButton variant="onDark" />
           </div>
         }
       />
-      <div className="lg:pl-[260px]">
+      <div className="lg:pl-[280px] xl:pl-[300px]">
         <main className="mx-auto w-full max-w-[1400px] px-4 py-6 sm:px-6 lg:px-8">
           {children}
         </main>

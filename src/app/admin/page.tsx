@@ -7,14 +7,12 @@ export default async function AdminOverviewPage() {
   const metrics = await fetchAdminMetrics();
 
   const cards = [
-    { label: "Total cards", value: metrics.total_cards },
-    { label: "Unclaimed", value: metrics.unclaimed },
-    { label: "Active", value: metrics.active },
-    { label: "Blocked", value: metrics.blocked },
-    { label: "Programmed", value: metrics.programmed },
-    { label: "Profiles", value: metrics.total_profiles },
-    { label: "Leads", value: metrics.total_leads },
-    { label: "Batches", value: metrics.batches },
+    { label: "Total cards", value: metrics.total_cards, hint: "In inventory" },
+    { label: "Unclaimed", value: metrics.unclaimed, hint: "Ready to activate" },
+    { label: "Active", value: metrics.active, hint: "Linked to customers" },
+    { label: "Programmed", value: metrics.programmed, hint: "NFC write verified" },
+    { label: "Customers", value: metrics.total_profiles, hint: "Client accounts" },
+    { label: "Leads", value: metrics.total_leads, hint: "Visitor captures" },
   ];
 
   return (
@@ -28,19 +26,28 @@ export default async function AdminOverviewPage() {
             Admin overview
           </h1>
           <p className="mt-2 max-w-2xl text-sm text-hb-leaf">
-            Provision factory batches, verify NFC write/read-back, and monitor
-            printing + activation metrics across the full desktop console.
+            Create customers, generate HighCard batches, and program NTAG213
+            chips. Programming only writes a URL to the chip — never customer
+            personal data.
           </p>
         </div>
-        <Link
-          href="/admin/cards"
-          className="inline-flex h-11 items-center rounded-xl bg-hb-action px-4 text-sm font-semibold text-white shadow-lift"
-        >
-          Generate batch
-        </Link>
+        <div className="flex flex-wrap gap-2">
+          <Link
+            href="/admin/customers"
+            className="inline-flex h-11 items-center rounded-xl bg-hb-action px-4 text-sm font-semibold text-white shadow-lift"
+          >
+            Manage customers
+          </Link>
+          <Link
+            href="/admin/programming"
+            className="inline-flex h-11 items-center rounded-xl border border-hb-sand bg-white px-4 text-sm font-semibold text-hb-forest"
+          >
+            NFC programming
+          </Link>
+        </div>
       </header>
 
-      <div className="mt-8 grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+      <div className="mt-8 grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
         {cards.map((card) => (
           <article
             key={card.label}
@@ -50,25 +57,67 @@ export default async function AdminOverviewPage() {
               {card.label}
             </p>
             <p className="mt-3 font-display text-4xl text-hb-ink">{card.value}</p>
+            <p className="mt-1 text-xs text-hb-leaf/80">{card.hint}</p>
           </article>
         ))}
       </div>
 
-      <section className="mt-8 rounded-2xl border border-hb-sand/80 bg-white p-6 shadow-soft">
-        <h2 className="font-display text-2xl text-hb-ink">Provisioning API</h2>
-        <p className="mt-2 text-sm text-hb-leaf">
-          External writers (NXP TagWriter / USB) should query:
-        </p>
-        <code className="mt-3 block overflow-x-auto rounded-xl bg-hb-ink px-4 py-3 text-xs text-hb-mint">
-          GET /api/admin/cards/&#123;card_id&#125;/programming-data
-        </code>
-        <p className="mt-3 text-sm text-hb-leaf">
-          Confirm read-back with{" "}
-          <code className="rounded bg-hb-mist px-1.5 py-0.5 text-hb-forest">
-            POST /api/admin/cards/&#123;card_id&#125;/verify
-          </code>
-          . Cards stay <strong>UNCLAIMED</strong> until customer activation.
-        </p>
+      <section className="mt-8 grid gap-4 lg:grid-cols-2">
+        <article className="rounded-2xl border border-hb-sand/80 bg-white p-6 shadow-soft">
+          <h2 className="font-display text-2xl text-hb-ink">
+            What is “NFC programming”?
+          </h2>
+          <ol className="mt-4 list-decimal space-y-3 pl-5 text-sm leading-relaxed text-hb-leaf">
+            <li>
+              <strong className="text-hb-ink">Generate a card</strong> in Card
+              Inventory — each gets a secret link like{" "}
+              <code className="rounded bg-hb-mist px-1">/c/A7X92KP4</code>.
+            </li>
+            <li>
+              <strong className="text-hb-ink">Fetch programming data</strong>{" "}
+              (admin-only API) — returns the exact URL to write with NXP
+              TagWriter.
+            </li>
+            <li>
+              <strong className="text-hb-ink">Write + verify</strong> — after
+              read-back matches, card becomes PROGRAMMED but still UNCLAIMED.
+            </li>
+            <li>
+              <strong className="text-hb-ink">Customer activates</strong> — they
+              log in and claim the card; status becomes ACTIVE and taps open
+              their profile.
+            </li>
+          </ol>
+        </article>
+
+        <article className="rounded-2xl border border-hb-sand/80 bg-hb-cta p-6 text-white shadow-lift">
+          <h2 className="font-display text-2xl">Quick links</h2>
+          <ul className="mt-4 space-y-2 text-sm">
+            <li>
+              <Link href="/admin/customers" className="underline decoration-white/40">
+                Create / edit customers (pranay & demo)
+              </Link>
+            </li>
+            <li>
+              <Link href="/admin/cards" className="underline decoration-white/40">
+                Generate card batches
+              </Link>
+            </li>
+            <li>
+              <Link
+                href="/admin/programming"
+                className="underline decoration-white/40"
+              >
+                Open programming workbench
+              </Link>
+            </li>
+            <li>
+              <Link href="/c/A7X92KP4" className="underline decoration-white/40">
+                Test unclaimed card → /c/A7X92KP4
+              </Link>
+            </li>
+          </ul>
+        </article>
       </section>
     </div>
   );
