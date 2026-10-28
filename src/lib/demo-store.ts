@@ -211,7 +211,13 @@ export const demoStats: ProfileStats[] = [
 
 export function findAccountByLogin(loginId: string) {
   const key = loginId.trim().toLowerCase();
-  return demoAccounts.find((a) => a.login_id.toLowerCase() === key) ?? null;
+  return (
+    demoAccounts.find(
+      (a) =>
+        a.login_id.toLowerCase() === key ||
+        a.profile.email?.toLowerCase() === key
+    ) ?? null
+  );
 }
 
 export function findAccountByUserId(userId: string) {
@@ -252,8 +258,16 @@ export function createDemoCustomer(input: {
   if (login.length < 3) throw new Error("Login ID must be at least 3 characters");
   if (username.length < 3) throw new Error("Username must be at least 3 characters");
   if (input.password.length < 4) throw new Error("Password must be at least 4 characters");
-  if (findAccountByLogin(login)) throw new Error("Login ID already exists");
+  if (findAccountByLogin(login)) throw new Error("Login ID or email already exists");
   if (getDemoProfileByUsername(username)) throw new Error("Username already exists");
+  if (
+    input.email &&
+    demoAccounts.some(
+      (a) => a.profile.email?.toLowerCase() === input.email!.trim().toLowerCase()
+    )
+  ) {
+    throw new Error("Email already registered");
+  }
 
   const user_id = `${idNano().slice(0, 8)}-${idNano().slice(0, 4)}-${idNano().slice(0, 4)}-${idNano().slice(0, 4)}-${idNano().slice(0, 12)}`;
 

@@ -2,7 +2,6 @@
 
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { isDemoMode } from "@/lib/utils";
 import Link from "next/link";
 import { FormEvent, useState } from "react";
 import { useRouter } from "next/navigation";
@@ -14,10 +13,6 @@ export function SignupForm({ cardToken }: { cardToken?: string }) {
 
   async function onSubmit(e: FormEvent<HTMLFormElement>) {
     e.preventDefault();
-    if (isDemoMode()) {
-      setError("Demo mode: use Client login, then claim the card.");
-      return;
-    }
     setPending(true);
     setError(null);
     const form = new FormData(e.currentTarget);
@@ -42,38 +37,54 @@ export function SignupForm({ cardToken }: { cardToken?: string }) {
     router.refresh();
   }
 
-  if (isDemoMode()) {
-    return (
-      <div className="space-y-4">
-        <p className="text-sm text-hb-leaf">
-          Jump into the client portal to claim an unprogrammed HighCard.
-        </p>
-        <Link href="/login">
-          <Button className="w-full">Open demo login</Button>
-        </Link>
-      </div>
-    );
-  }
-
   return (
     <form className="space-y-3" onSubmit={onSubmit}>
-      <Input name="full_name" label="Full name" required />
+      <Input
+        name="full_name"
+        label="Full name"
+        placeholder="Your name"
+        autoComplete="name"
+        required
+      />
       <Input
         name="username"
         label="Username"
+        placeholder="e.g. ananya"
         hint="Letters, numbers, underscore — becomes your public URL"
+        autoComplete="username"
         required
       />
-      <Input name="email" type="email" label="Email" required />
-      <Input name="password" type="password" label="Password" required />
+      <Input
+        name="email"
+        type="email"
+        label="Email"
+        placeholder="you@company.com"
+        autoComplete="email"
+        required
+      />
+      <Input
+        name="password"
+        type="password"
+        label="Password"
+        placeholder="At least 6 characters"
+        autoComplete="new-password"
+        minLength={6}
+        required
+      />
       {error ? (
         <p className="text-sm text-hb-danger" role="alert">
           {error}
         </p>
       ) : null}
-      <Button className="w-full" type="submit" disabled={pending}>
+      <Button className="h-12 w-full" type="submit" disabled={pending}>
         {pending ? "Creating…" : "Create account"}
       </Button>
+      <p className="text-center text-xs leading-relaxed text-hb-leaf">
+        Already registered?{" "}
+        <Link href="/login" className="font-semibold text-hb-action">
+          Sign in
+        </Link>
+      </p>
     </form>
   );
 }

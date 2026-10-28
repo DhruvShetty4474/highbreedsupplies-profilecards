@@ -16,9 +16,12 @@ export default function AdminCustomersPage() {
         </p>
         <h1 className="mt-1 font-display text-4xl text-hb-ink">Customers</h1>
         <p className="mt-2 max-w-2xl text-sm leading-relaxed text-hb-leaf">
-          Create login IDs and edit customer digital profiles (avatar, banner,
-          images, video, social links). Customers can also edit their own page
-          after signing in.
+          Create login IDs here, or customers can self-register at{" "}
+          <a href="/register" className="font-semibold text-hb-action">
+            /register
+          </a>
+          . Self-registered users appear in this list so you can edit and share
+          their pages.
         </p>
       </header>
 

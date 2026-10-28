@@ -82,8 +82,11 @@ export default async function LoginPage({
             </div>
           </div>
           <p className="mt-6 text-center text-sm leading-relaxed text-hb-leaf">
-            Need a customer account? Ask your HIGHBREED administrator to create
-            your login ID.
+            New here?{" "}
+            <a href="/register" className="font-semibold text-hb-action">
+              Register with email
+            </a>
+            {" · "}Admins can also create customer accounts.
             {isDemoMode() ? (
               <>
                 <br />

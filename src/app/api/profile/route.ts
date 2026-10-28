@@ -86,7 +86,8 @@ export async function PATCH(request: Request) {
     return NextResponse.json({ error: "Forbidden" }, { status: 403 });
   }
 
-  const { user_id: _ignore, ...rest } = parsed.data;
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars -- strip user_id from patch body
+  const { user_id, ...rest } = parsed.data;
   const updates: Partial<Profile> = {
     ...rest,
     email: rest.email || null,

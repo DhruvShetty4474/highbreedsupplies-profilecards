@@ -3,8 +3,8 @@
 ## Public entry
 | Route | Purpose |
 |-------|---------|
-| `/login` | Sign in with Login ID + password. Role (admin vs customer) is decided by the account, not by buttons. |
-| `/signup` | Disabled for public — only admin creates customers. |
+| `/login` | Sign in with email or Login ID + password. Role (admin vs customer) comes from the account. |
+| `/register` | Customer self-signup (email + password + username). `/signup` redirects here. Admin can still create accounts and sees all users under Customers. |
 
 ## Admin console (`/admin`)
 | Section | Purpose |

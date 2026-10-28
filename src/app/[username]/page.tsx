@@ -10,6 +10,7 @@ const RESERVED = new Set([
   "dashboard",
   "login",
   "signup",
+  "register",
   "api",
   "c",
   "auth",

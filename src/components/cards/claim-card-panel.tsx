@@ -90,7 +90,7 @@ export function ClaimCardPanel({
             <Link href={`/login?next=/c/${card.public_token}`}>
               <Button className="w-full">Log in to claim</Button>
             </Link>
-            <Link href={`/signup?card=${card.public_token}`}>
+            <Link href={`/register?card=${card.public_token}`}>
               <Button variant="secondary" className="w-full">
                 Create account & claim
               </Button>

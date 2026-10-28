@@ -38,8 +38,8 @@ export function LoginForm({ nextPath }: { nextPath?: string }) {
     <form className="space-y-4" onSubmit={onSubmit}>
       <Input
         name="login_id"
-        label="Login ID"
-        placeholder="Your login ID"
+        label="Email or Login ID"
+        placeholder="you@company.com or login ID"
         autoComplete="username"
         required
       />
@@ -60,8 +60,10 @@ export function LoginForm({ nextPath }: { nextPath?: string }) {
         {pending ? "Signing in…" : "Sign in"}
       </Button>
       <p className="text-center text-xs leading-relaxed text-hb-leaf">
-        Role is assigned automatically from your account. Customer accounts are
-        created by an administrator.
+        Role is assigned automatically from your account.{" "}
+        <a href="/register" className="font-semibold text-hb-action">
+          Create a customer account
+        </a>
       </p>
     </form>
   );
