@@ -1,11 +1,21 @@
 import { CreateCustomerForm } from "@/components/admin/create-customer-form";
+import {
+  DEMO_REGISTRY_COOKIE,
+  hydrateDemoAccountsFromCookie,
+} from "@/lib/demo-registry";
 import { getStats, listClientAccounts } from "@/lib/demo-store";
 import { isDemoMode } from "@/lib/utils";
+import { cookies } from "next/headers";
 import Link from "next/link";
 
 export const metadata = { title: "Customers" };
 
 export default function AdminCustomersPage() {
+  if (isDemoMode()) {
+    hydrateDemoAccountsFromCookie(
+      cookies().get(DEMO_REGISTRY_COOKIE)?.value
+    );
+  }
   const customers = isDemoMode() ? listClientAccounts() : [];
 
   return (

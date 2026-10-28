@@ -1,11 +1,21 @@
+import {
+  DEMO_REGISTRY_COOKIE,
+  hydrateDemoAccountsFromCookie,
+} from "@/lib/demo-registry";
 import { listClientAccounts } from "@/lib/demo-store";
 import { avatarHue, initials, isDemoMode } from "@/lib/utils";
 import { ChevronRight, Share2 } from "lucide-react";
+import { cookies } from "next/headers";
 import Link from "next/link";
 
 export const metadata = { title: "Share pages" };
 
 export default function AdminSharePagesPage() {
+  if (isDemoMode()) {
+    hydrateDemoAccountsFromCookie(
+      cookies().get(DEMO_REGISTRY_COOKIE)?.value
+    );
+  }
   const customers = isDemoMode() ? listClientAccounts() : [];
 
   return (

@@ -365,7 +365,7 @@ export function PublicProfileView({
   return (
     <div
       className={cn(
-        "relative flex flex-col bg-[#F7FBF9]",
+        "relative flex flex-col bg-hb-fog",
         compact ? "pb-20" : "min-h-full pb-28"
       )}
     >
@@ -375,7 +375,7 @@ export function PublicProfileView({
             {...fade(0)}
             className={cn(
               "relative w-full overflow-hidden",
-              compact ? "h-36" : "h-48 sm:h-56"
+              compact ? "h-36" : "h-44 sm:h-56"
             )}
           >
             {profile.banner_url ? (
@@ -387,13 +387,14 @@ export function PublicProfileView({
               />
             ) : (
               <div className="h-full w-full bg-hb-banner">
-                <div className="absolute inset-0 opacity-45 [background:radial-gradient(circle_at_20%_20%,rgba(255,255,255,0.45),transparent_42%),radial-gradient(circle_at_85%_10%,rgba(61,190,139,0.55),transparent_48%)]" />
+                <div className="absolute inset-0 opacity-50 [background:radial-gradient(circle_at_20%_20%,rgba(232,197,71,0.55),transparent_42%),radial-gradient(circle_at_85%_10%,rgba(31,107,84,0.5),transparent_48%)]" />
               </div>
             )}
+            <div className="pointer-events-none absolute inset-x-0 bottom-0 h-16 bg-gradient-to-t from-black/35 to-transparent" />
             <button
               type="button"
               onClick={shareProfile}
-              className="absolute right-4 top-4 hb-focus inline-flex h-10 items-center gap-2 rounded-full border border-white/30 bg-white/15 px-3.5 text-xs font-semibold tracking-wide text-white backdrop-blur-md"
+              className="absolute right-3 top-3 hb-focus inline-flex h-10 items-center gap-2 rounded-full border border-white/35 bg-black/25 px-3.5 text-xs font-semibold tracking-wide text-white backdrop-blur-md sm:right-4 sm:top-4"
             >
               <Share2 className="h-3.5 w-3.5" />
               Share

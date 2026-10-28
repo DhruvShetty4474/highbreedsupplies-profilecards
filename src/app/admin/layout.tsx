@@ -57,7 +57,7 @@ export default async function AdminLayout({
   if (profile.role !== "admin") redirect("/dashboard");
 
   return (
-    <div className="min-h-dvh bg-[#EEF4F1]">
+    <div className="min-h-dvh bg-hb-fog">
       <SaasSidebar
         title="Admin"
         subtitle="Provision HighCards, create customers, and program NTAG213 chips."

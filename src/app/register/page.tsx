@@ -25,8 +25,8 @@ export default async function RegisterPage({
 
   return (
     <main className="grid min-h-dvh lg:grid-cols-[1.05fr_0.95fr]">
-      <aside className="relative hidden overflow-hidden bg-[linear-gradient(155deg,#071512_0%,#0F3D32_45%,#1F6B54_100%)] lg:flex lg:flex-col lg:justify-between lg:px-14 lg:py-12">
-        <div className="pointer-events-none absolute inset-0 opacity-30 [background:radial-gradient(700px_400px_at_20%_20%,rgba(61,190,139,0.45),transparent_55%),radial-gradient(500px_300px_at_80%_80%,rgba(14,124,102,0.35),transparent_50%)]" />
+      <aside className="relative hidden overflow-hidden bg-[linear-gradient(155deg,#0A1F1A_0%,#0F3D32_42%,#1F6B54_78%,#C9A227_120%)] lg:flex lg:flex-col lg:justify-between lg:px-14 lg:py-12">
+        <div className="pointer-events-none absolute inset-0 opacity-35 [background:radial-gradient(700px_400px_at_20%_20%,rgba(232,197,71,0.4),transparent_55%),radial-gradient(500px_300px_at_80%_80%,rgba(31,107,84,0.4),transparent_50%)]" />
         <div className="relative">
           <div className="flex items-center gap-3 text-white">
             <div className="grid h-11 w-11 place-items-center rounded-2xl bg-white/10 font-display text-lg font-semibold backdrop-blur">
@@ -63,7 +63,7 @@ export default async function RegisterPage({
         </ul>
       </aside>
 
-      <section className="flex flex-col justify-center bg-[#F3F8F6] px-6 py-10 sm:px-10 lg:px-16">
+      <section className="flex flex-col justify-center bg-hb-fog px-6 py-10 sm:px-10 lg:px-16">
         <div className="mx-auto w-full max-w-md">
           <div className="lg:hidden">
             <HighbreedWordmark />

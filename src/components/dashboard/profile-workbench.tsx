@@ -1,5 +1,6 @@
 "use client";
 
+import { MediaPicker } from "@/components/dashboard/media-picker";
 import { PublicProfile } from "@/components/profile/public-profile";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -142,22 +143,22 @@ export function ProfileWorkbench({
   }
 
   return (
-    <div className="flex min-h-[calc(100dvh-2rem)] flex-col xl:flex-row">
+    <div className="flex min-h-[calc(100dvh-2rem)] flex-col gap-8 xl:flex-row xl:gap-0">
       <form
         onSubmit={save}
         className="flex w-full flex-col xl:max-w-[560px] xl:border-r xl:border-hb-sand xl:pr-8"
       >
-        <header className="mb-8 flex flex-wrap items-start justify-between gap-4">
+        <header className="mb-6 flex flex-wrap items-start justify-between gap-4 sm:mb-8">
           <div>
             <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-hb-leaf">
               {adminUserId ? "Admin · customer editor" : "Profile workbench"}
             </p>
-            <h1 className="mt-1 font-display text-4xl text-hb-ink">
+            <h1 className="mt-1 font-display text-3xl text-hb-ink sm:text-4xl">
               Block editor
             </h1>
             <p className="mt-2 max-w-md text-sm leading-relaxed text-hb-leaf">
-              Toggle sections, add images/galleries/video/text, and reorder
-              social tiles. Preview updates live on the right.
+              Add a background image, avatar, content blocks, and social links.
+              Preview updates live — desktop on the right, mobile below.
             </p>
           </div>
           <div className="flex flex-wrap gap-2">
@@ -274,22 +275,26 @@ export function ProfileWorkbench({
 
           <section className="rounded-2xl border border-hb-sand/80 bg-white/90 p-5 shadow-soft">
             <h2 className="text-sm font-semibold text-hb-ink">
-              Hero media
+              Profile background & photo
             </h2>
-            <div className="mt-3 grid gap-3">
-              <Input
-                label="Avatar URL"
-                value={draft.avatar_url ?? ""}
-                onChange={(e) =>
-                  setDraft({ ...draft, avatar_url: e.target.value })
-                }
+            <p className="mt-1 text-xs text-hb-leaf">
+              Background shows behind your name on the public card. Avatar is
+              your circular photo.
+            </p>
+            <div className="mt-4 grid gap-6">
+              <MediaPicker
+                label="Profile background image"
+                hint="Wide cover photo (16:7). Upload or paste a URL."
+                kind="banner"
+                value={draft.banner_url}
+                onChange={(url) => setDraft({ ...draft, banner_url: url })}
               />
-              <Input
-                label="Cover banner URL"
-                value={draft.banner_url ?? ""}
-                onChange={(e) =>
-                  setDraft({ ...draft, banner_url: e.target.value })
-                }
+              <MediaPicker
+                label="Profile photo"
+                hint="Square works best."
+                kind="avatar"
+                value={draft.avatar_url}
+                onChange={(url) => setDraft({ ...draft, avatar_url: url })}
               />
             </div>
           </section>
@@ -543,23 +548,35 @@ export function ProfileWorkbench({
           </section>
         </div>
 
-        <div className="sticky bottom-0 z-10 mt-auto border-t border-hb-sand/80 bg-[#EEF4F1]/95 py-4 backdrop-blur">
-          <Button type="submit" disabled={pending}>
+        <div className="sticky bottom-0 z-10 mt-auto border-t border-hb-sand/80 bg-hb-fog/95 py-4 backdrop-blur">
+          <Button type="submit" disabled={pending} className="w-full sm:w-auto">
             <Save className="h-4 w-4" />
             {pending ? "Saving…" : "Save profile"}
           </Button>
           {message ? (
-            <p className="mt-2 text-sm text-hb-action">{message}</p>
+            <p className="mt-2 text-sm font-medium text-hb-leaf">{message}</p>
           ) : null}
         </div>
       </form>
 
+      {/* Mobile / tablet live preview */}
+      <div className="xl:hidden">
+        <p className="mb-3 text-[11px] font-semibold uppercase tracking-[0.18em] text-hb-leaf">
+          Live preview
+        </p>
+        <div className="mx-auto max-w-[390px] overflow-hidden rounded-[28px] border border-hb-sand bg-white shadow-lift">
+          <PublicProfile profile={liveProfile} embedded />
+        </div>
+      </div>
+
       <aside className="relative hidden flex-1 xl:block">
-        <div className="sticky top-6 flex h-[calc(100dvh-3rem)] flex-col items-center justify-center rounded-3xl border border-hb-sand/50 bg-[radial-gradient(600px_360px_at_50%_0%,rgba(61,190,139,0.22),transparent_60%),linear-gradient(180deg,#0F3D32,#071512)] p-8">
-          <p className="mb-5 text-[11px] font-semibold uppercase tracking-[0.2em] text-hb-mint/85">
+        <div className="sticky top-6 flex h-[calc(100dvh-3rem)] flex-col items-center justify-center rounded-3xl border border-hb-sand/50 bg-[radial-gradient(600px_360px_at_50%_0%,rgba(201,162,39,0.2),transparent_55%),linear-gradient(180deg,#0F3D32,#0A1F1A)] p-6 xl:p-8">
+          <p className="mb-5 text-[11px] font-semibold uppercase tracking-[0.2em] text-hb-goldSoft">
             Live public preview
           </p>
-          <PublicProfile profile={liveProfile} embedded />
+          <div className="w-full max-w-[390px] overflow-hidden rounded-[28px] border border-white/10 bg-white shadow-lift">
+            <PublicProfile profile={liveProfile} embedded />
+          </div>
         </div>
       </aside>
     </div>

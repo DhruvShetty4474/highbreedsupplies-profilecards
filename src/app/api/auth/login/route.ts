@@ -2,9 +2,15 @@ import {
   DEMO_ROLE_COOKIE,
   DEMO_SESSION_COOKIE,
 } from "@/lib/auth";
+import {
+  DEMO_REGISTRY_COOKIE,
+  attachDemoRegistryCookie,
+  hydrateDemoAccountsFromCookie,
+} from "@/lib/demo-registry";
 import { findAccountByLogin } from "@/lib/demo-store";
 import { createClient } from "@/lib/supabase/server";
 import { isDemoMode } from "@/lib/utils";
+import { cookies } from "next/headers";
 import { NextResponse } from "next/server";
 import { z } from "zod";
 
@@ -20,10 +26,16 @@ export async function POST(request: Request) {
   }
 
   if (isDemoMode()) {
+    hydrateDemoAccountsFromCookie(
+      cookies().get(DEMO_REGISTRY_COOKIE)?.value
+    );
     const account = findAccountByLogin(parsed.data.login_id);
     if (!account || account.password !== parsed.data.password) {
       return NextResponse.json(
-        { error: "Invalid login ID or password" },
+        {
+          error:
+            "Invalid login ID or password. If you just registered, use the same email and password from this browser.",
+        },
         { status: 401 }
       );
     }
@@ -46,6 +58,7 @@ export async function POST(request: Request) {
       path: "/",
       maxAge: 60 * 60 * 24 * 7,
     });
+    attachDemoRegistryCookie(response);
 
     return response;
   }

@@ -1,4 +1,9 @@
 import { getSessionProfile } from "@/lib/auth";
+import {
+  DEMO_REGISTRY_COOKIE,
+  attachDemoRegistryCookie,
+  hydrateDemoAccountsFromCookie,
+} from "@/lib/demo-registry";
 import { updateDemoProfile } from "@/lib/demo-store";
 import { createClient } from "@/lib/supabase/server";
 import type {
@@ -8,6 +13,7 @@ import type {
   SocialLink,
 } from "@/lib/types";
 import { isDemoMode } from "@/lib/utils";
+import { cookies } from "next/headers";
 import { NextResponse } from "next/server";
 import { z } from "zod";
 
@@ -100,11 +106,14 @@ export async function PATCH(request: Request) {
   };
 
   if (isDemoMode()) {
+    hydrateDemoAccountsFromCookie(cookies().get(DEMO_REGISTRY_COOKIE)?.value);
     const next = updateDemoProfile(targetUserId, updates);
     if (!next) {
       return NextResponse.json({ error: "Profile not found" }, { status: 404 });
     }
-    return NextResponse.json({ ok: true, profile: next });
+    const response = NextResponse.json({ ok: true, profile: next });
+    attachDemoRegistryCookie(response);
+    return response;
   }
 
   const supabase = createClient();

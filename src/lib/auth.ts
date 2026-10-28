@@ -1,4 +1,8 @@
 import { cookies } from "next/headers";
+import {
+  DEMO_REGISTRY_COOKIE,
+  hydrateDemoAccountsFromCookie,
+} from "@/lib/demo-registry";
 import { getDemoProfileById } from "@/lib/demo-store";
 import { createClient } from "@/lib/supabase/server";
 import type { AppRole, Profile } from "@/lib/types";
@@ -11,7 +15,9 @@ export const DEMO_ROLE_COOKIE = "hb_demo_role";
 
 export async function getSessionProfile(): Promise<Profile | null> {
   if (isDemoMode()) {
-    const userId = cookies().get(DEMO_SESSION_COOKIE)?.value;
+    const jar = cookies();
+    hydrateDemoAccountsFromCookie(jar.get(DEMO_REGISTRY_COOKIE)?.value);
+    const userId = jar.get(DEMO_SESSION_COOKIE)?.value;
     if (!userId) return null;
     return getDemoProfileById(userId);
   }

@@ -56,7 +56,7 @@ export default async function DashboardLayout({
   if (!profile) redirect("/login?next=/dashboard");
 
   return (
-    <div className="min-h-dvh bg-[#EEF4F1]">
+    <div className="min-h-dvh bg-hb-fog">
       <SaasSidebar
         title="Customer"
         subtitle="Edit your digital card, claim NFC devices, and review visitor leads."

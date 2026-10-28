@@ -90,12 +90,14 @@ export function SaasSidebar({
             )}
           >
             {active ? (
-              <span className="absolute left-0 top-1/2 h-8 w-1 -translate-y-1/2 rounded-r-full bg-hb-mint" />
+              <span className="absolute left-0 top-1/2 h-8 w-1 -translate-y-1/2 rounded-r-full bg-hb-gold" />
             ) : null}
             <span
               className={cn(
                 "mt-0.5 grid h-9 w-9 shrink-0 place-items-center rounded-xl",
-                active ? "bg-hb-action text-white" : "bg-white/10 text-hb-mint"
+                active
+                  ? "bg-hb-cta text-hb-ink"
+                  : "bg-white/10 text-hb-goldSoft"
               )}
             >
               <Icon className="h-4 w-4" />
@@ -129,7 +131,7 @@ export function SaasSidebar({
           <p className="font-display text-lg tracking-tight text-white">
             HIGHBREED
           </p>
-          <p className="truncate text-[10px] uppercase tracking-[0.2em] text-hb-mint/80">
+          <p className="truncate text-[10px] uppercase tracking-[0.2em] text-hb-goldSoft/90">
             {title || "Workspace"}
           </p>
         </div>
@@ -172,7 +174,7 @@ export function SaasSidebar({
             aria-label="Close navigation"
             onClick={() => setOpen(false)}
           />
-          <aside className="relative flex h-full w-[min(88vw,300px)] flex-col bg-[linear-gradient(180deg,#071512_0%,#0F3D32_55%,#123F35_100%)] shadow-lift">
+          <aside className="relative flex h-full w-[min(88vw,300px)] flex-col bg-hb-sidebar shadow-lift">
             <div className="flex items-start justify-between">
               <div className="flex-1">{brand}</div>
               <button
@@ -192,7 +194,7 @@ export function SaasSidebar({
       ) : null}
 
       {/* Desktop sidebar */}
-      <aside className="fixed inset-y-0 left-0 z-30 hidden w-[280px] flex-col bg-[linear-gradient(180deg,#071512_0%,#0F3D32_50%,#0A2E26_100%)] lg:flex xl:w-[300px]">
+      <aside className="fixed inset-y-0 left-0 z-30 hidden w-[280px] flex-col bg-hb-sidebar lg:flex xl:w-[300px]">
         {brand}
         {nav}
         <div className="mt-auto border-t border-white/10 bg-black/15 p-4 text-white">

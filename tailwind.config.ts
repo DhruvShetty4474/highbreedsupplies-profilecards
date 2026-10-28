@@ -10,15 +10,18 @@ const config: Config = {
     extend: {
       colors: {
         hb: {
-          ink: "#071512",
+          ink: "#14110B",
           forest: "#0F3D32",
           leaf: "#1F6B54",
           mint: "#3DBE8B",
-          action: "#0E7C66",
-          actionDark: "#0A5C4C",
-          mist: "#E8F2EE",
-          fog: "#F3F8F6",
-          sand: "#D7E5DF",
+          gold: "#C9A227",
+          goldSoft: "#E8C547",
+          goldDeep: "#9A7B1A",
+          action: "#C9A227",
+          actionDark: "#9A7B1A",
+          mist: "#F3F0E4",
+          fog: "#F7F4EA",
+          sand: "#E4DCC8",
           warn: "#C45C26",
           danger: "#B42318",
         },
@@ -28,19 +31,21 @@ const config: Config = {
         sans: ["var(--font-sans)", "system-ui", "sans-serif"],
       },
       boxShadow: {
-        soft: "0 10px 40px -18px rgba(7, 21, 18, 0.35)",
-        lift: "0 18px 50px -24px rgba(14, 124, 102, 0.45)",
-        nav: "0 -8px 30px -16px rgba(7, 21, 18, 0.25)",
+        soft: "0 10px 40px -18px rgba(20, 17, 11, 0.28)",
+        lift: "0 18px 50px -24px rgba(201, 162, 39, 0.45)",
+        nav: "0 -8px 30px -16px rgba(20, 17, 11, 0.22)",
       },
       backgroundImage: {
         "hb-mesh":
-          "radial-gradient(1200px 600px at 10% -10%, rgba(61,190,139,0.28), transparent 55%), radial-gradient(900px 500px at 100% 0%, rgba(14,124,102,0.22), transparent 50%), linear-gradient(180deg, #F3F8F6 0%, #E8F2EE 48%, #F7FBFA 100%)",
+          "radial-gradient(1200px 600px at 10% -10%, rgba(232,197,71,0.22), transparent 55%), radial-gradient(900px 500px at 100% 0%, rgba(31,107,84,0.18), transparent 50%), linear-gradient(180deg, #F7F4EA 0%, #F3F0E4 48%, #FAF8F2 100%)",
         "hb-banner":
-          "linear-gradient(135deg, #0F3D32 0%, #1F6B54 42%, #3DBE8B 100%)",
+          "linear-gradient(135deg, #0F3D32 0%, #1F6B54 38%, #C9A227 100%)",
         "hb-cta":
-          "linear-gradient(105deg, #0E7C66 0%, #1F6B54 55%, #0A5C4C 100%)",
+          "linear-gradient(105deg, #E8C547 0%, #C9A227 48%, #9A7B1A 100%)",
         "hb-card":
-          "linear-gradient(160deg, rgba(255,255,255,0.92), rgba(243,248,246,0.88))",
+          "linear-gradient(160deg, rgba(255,255,255,0.94), rgba(247,244,234,0.9))",
+        "hb-sidebar":
+          "linear-gradient(180deg, #0A1F1A 0%, #0F3D32 48%, #123F35 100%)",
       },
       keyframes: {
         "fade-up": {

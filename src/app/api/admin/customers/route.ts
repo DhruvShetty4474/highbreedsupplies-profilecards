@@ -1,9 +1,15 @@
 import { getSessionProfile } from "@/lib/auth";
 import {
+  DEMO_REGISTRY_COOKIE,
+  attachDemoRegistryCookie,
+  hydrateDemoAccountsFromCookie,
+} from "@/lib/demo-registry";
+import {
   createDemoCustomer,
   listClientAccounts,
 } from "@/lib/demo-store";
 import { isDemoMode } from "@/lib/utils";
+import { cookies } from "next/headers";
 import { NextResponse } from "next/server";
 import { z } from "zod";
 
@@ -29,6 +35,8 @@ export async function GET() {
       customers: [],
     });
   }
+
+  hydrateDemoAccountsFromCookie(cookies().get(DEMO_REGISTRY_COOKIE)?.value);
 
   const customers = listClientAccounts().map((a) => ({
     user_id: a.user_id,
@@ -62,8 +70,9 @@ export async function POST(request: Request) {
   }
 
   try {
+    hydrateDemoAccountsFromCookie(cookies().get(DEMO_REGISTRY_COOKIE)?.value);
     const created = createDemoCustomer(parsed.data);
-    return NextResponse.json({
+    const response = NextResponse.json({
       ok: true,
       customer: {
         user_id: created.user_id,
@@ -72,6 +81,8 @@ export async function POST(request: Request) {
         full_name: created.profile.full_name,
       },
     });
+    attachDemoRegistryCookie(response);
+    return response;
   } catch (err) {
     return NextResponse.json(
       { error: err instanceof Error ? err.message : "Could not create customer" },

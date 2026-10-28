@@ -7,13 +7,13 @@ type Variant = "primary" | "secondary" | "ghost" | "danger" | "outline";
 
 const variants: Record<Variant, string> = {
   primary:
-    "bg-hb-cta text-white shadow-lift hover:brightness-105 active:scale-[0.98]",
+    "bg-hb-cta text-hb-ink shadow-lift hover:brightness-105 active:scale-[0.98]",
   secondary:
-    "bg-hb-mist text-hb-forest hover:bg-hb-sand active:scale-[0.98]",
+    "bg-hb-forest text-white hover:bg-hb-leaf active:scale-[0.98]",
   ghost: "bg-transparent text-hb-leaf hover:bg-hb-mist",
   danger: "bg-hb-danger text-white hover:brightness-105",
   outline:
-    "border border-hb-sand bg-white text-hb-forest hover:border-hb-action/40",
+    "border border-hb-sand bg-white text-hb-forest hover:border-hb-gold/50",
 };
 
 type Props = ButtonHTMLAttributes<HTMLButtonElement> & {

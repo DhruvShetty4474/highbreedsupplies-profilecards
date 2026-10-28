@@ -9,12 +9,29 @@ import {
 } from "@/lib/demo-data";
 import { createClient, createServiceClient } from "@/lib/supabase/server";
 import type { AdminMetrics, Card, Lead, Profile } from "@/lib/types";
+import {
+  DEMO_REGISTRY_COOKIE,
+  hydrateDemoAccountsFromCookie,
+} from "@/lib/demo-registry";
 import { isDemoMode } from "@/lib/utils";
+import { cookies } from "next/headers";
+
+function ensureDemoHydrated() {
+  if (!isDemoMode()) return;
+  try {
+    hydrateDemoAccountsFromCookie(
+      cookies().get(DEMO_REGISTRY_COOKIE)?.value
+    );
+  } catch {
+    // cookies() unavailable in some static contexts — seed accounts still work
+  }
+}
 
 export async function fetchProfileByUsername(
   username: string
 ): Promise<Profile | null> {
   if (isDemoMode()) {
+    ensureDemoHydrated();
     return getDemoProfileByUsername(username) ?? null;
   }
 
@@ -33,7 +50,10 @@ export async function fetchProfileByUsername(
 export async function fetchProfileById(
   userId: string
 ): Promise<Profile | null> {
-  if (isDemoMode()) return getDemoProfileById(userId) ?? null;
+  if (isDemoMode()) {
+    ensureDemoHydrated();
+    return getDemoProfileById(userId) ?? null;
+  }
 
   const supabase = createClient() ?? createServiceClient();
   if (!supabase) return getDemoProfileById(userId) ?? null;

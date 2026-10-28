@@ -1,14 +1,24 @@
 import { AdminQuickActions } from "@/components/admin/quick-actions";
 import { fetchAdminMetrics } from "@/lib/data";
+import {
+  DEMO_REGISTRY_COOKIE,
+  hydrateDemoAccountsFromCookie,
+} from "@/lib/demo-registry";
 import { listClientAccounts } from "@/lib/demo-store";
 import { isDemoMode } from "@/lib/utils";
 import { ChevronRight } from "lucide-react";
+import { cookies } from "next/headers";
 import Link from "next/link";
 
 export const metadata = { title: "Admin Overview" };
 
 export default async function AdminOverviewPage() {
   const metrics = await fetchAdminMetrics();
+  if (isDemoMode()) {
+    hydrateDemoAccountsFromCookie(
+      cookies().get(DEMO_REGISTRY_COOKIE)?.value
+    );
+  }
   const customers = isDemoMode() ? listClientAccounts() : [];
 
   const cards = [
