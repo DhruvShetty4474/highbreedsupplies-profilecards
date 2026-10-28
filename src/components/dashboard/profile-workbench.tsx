@@ -570,7 +570,7 @@ export function ProfileWorkbench({
       </div>
 
       <aside className="relative hidden flex-1 xl:block">
-        <div className="sticky top-6 flex h-[calc(100dvh-3rem)] flex-col items-center justify-center rounded-3xl border border-hb-sand/50 bg-[radial-gradient(600px_360px_at_50%_0%,rgba(201,162,39,0.2),transparent_55%),linear-gradient(180deg,#0F3D32,#0A1F1A)] p-6 xl:p-8">
+        <div className="sticky top-6 flex h-[calc(100dvh-3rem)] flex-col items-center justify-center rounded-3xl border border-hb-gold/20 bg-[radial-gradient(600px_360px_at_50%_0%,rgba(240,201,74,0.22),transparent_55%),linear-gradient(180deg,#0B5C45,#062E24)] p-6 xl:p-8">
           <p className="mb-5 text-[11px] font-semibold uppercase tracking-[0.2em] text-hb-goldSoft">
             Live public preview
           </p>

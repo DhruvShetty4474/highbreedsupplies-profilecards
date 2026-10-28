@@ -42,7 +42,7 @@ export default function AdminEditCustomerPage({ params }: Props) {
           </Link>
           <Link
             href={`/admin/share/${profile.user_id}`}
-            className="rounded-full bg-hb-action px-4 py-2 text-xs font-semibold text-white"
+            className="rounded-full bg-hb-cta px-4 py-2 text-xs font-semibold text-hb-ink"
           >
             Share this page
           </Link>

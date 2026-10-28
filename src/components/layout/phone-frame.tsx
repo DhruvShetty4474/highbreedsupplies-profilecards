@@ -55,7 +55,7 @@ export function PublicCanvas({
     <div
       className={cn(
         "relative min-h-dvh w-full overflow-x-hidden",
-        "bg-[radial-gradient(900px_500px_at_15%_-10%,rgba(61,190,139,0.35),transparent_55%),radial-gradient(700px_420px_at_90%_10%,rgba(15,61,50,0.35),transparent_50%),linear-gradient(165deg,#071512_0%,#0F3D32_42%,#123F35_100%)]",
+        "bg-[radial-gradient(900px_500px_at_15%_-10%,rgba(240,201,74,0.28),transparent_55%),radial-gradient(700px_420px_at_90%_10%,rgba(11,92,69,0.4),transparent_50%),linear-gradient(165deg,#062E24_0%,#0B5C45_48%,#083D30_100%)]",
         className
       )}
     >

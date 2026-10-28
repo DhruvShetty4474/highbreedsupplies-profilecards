@@ -3,10 +3,11 @@
 @tailwind utilities;
 
 :root {
-  --background: #f7f4ea;
-  --foreground: #14110b;
-  --hb-ring: rgba(201, 162, 39, 0.4);
-  --hb-secondary: #1f6b54;
+  --background: #fffbf3;
+  --foreground: #1a160f;
+  --hb-primary: #d4a017;
+  --hb-secondary: #0b5c45;
+  --hb-ring: rgba(212, 160, 23, 0.45);
 }
 
 * {
@@ -26,8 +27,8 @@ body {
 }
 
 ::selection {
-  background: rgba(201, 162, 39, 0.35);
-  color: #14110b;
+  background: rgba(212, 160, 23, 0.35);
+  color: #1a160f;
 }
 
 @layer utilities {
@@ -36,7 +37,7 @@ body {
   }
 
   .hb-glass {
-    @apply border border-white/70 bg-white/75 backdrop-blur-xl;
+    @apply border border-white/70 bg-white/80 backdrop-blur-xl;
   }
 
   .hb-focus {

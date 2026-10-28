@@ -286,7 +286,7 @@ export function SharePagePanel({
                 onClick={() => runAction(opt.action)}
                 className="flex min-h-[108px] flex-col items-start justify-between rounded-2xl border border-hb-sand/80 bg-white p-4 text-left shadow-soft transition hover:border-hb-action/35 hover:shadow-lift"
               >
-                <span className="grid h-10 w-10 place-items-center rounded-xl bg-hb-mist text-hb-action">
+                <span className="grid h-10 w-10 place-items-center rounded-xl bg-hb-mist text-hb-forest">
                   <Icon className="h-5 w-5" />
                 </span>
                 <span className="mt-3 text-sm font-semibold leading-snug text-hb-ink">

@@ -96,7 +96,7 @@ export function SaasSidebar({
               className={cn(
                 "mt-0.5 grid h-9 w-9 shrink-0 place-items-center rounded-xl",
                 active
-                  ? "bg-hb-cta text-hb-ink"
+                  ? "bg-hb-gold text-hb-ink"
                   : "bg-white/10 text-hb-goldSoft"
               )}
             >

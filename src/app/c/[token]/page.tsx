@@ -13,10 +13,10 @@ type Props = { params: { token: string } };
 /** Public card routes: centered card on canvas (same shell as profiles). */
 function PublicCardShell({ children }: { children: React.ReactNode }) {
   return (
-    <div className="relative min-h-dvh w-full overflow-x-hidden bg-[radial-gradient(1000px_560px_at_12%_-8%,rgba(61,190,139,0.28),transparent_55%),radial-gradient(800px_480px_at_90%_0%,rgba(15,61,50,0.4),transparent_50%),linear-gradient(165deg,#071512_0%,#0F3D32_48%,#123F35_100%)]">
+    <div className="relative min-h-dvh w-full overflow-x-hidden bg-[radial-gradient(1000px_560px_at_12%_-8%,rgba(240,201,74,0.22),transparent_55%),radial-gradient(800px_480px_at_90%_0%,rgba(11,92,69,0.45),transparent_50%),linear-gradient(165deg,#062E24_0%,#0B5C45_52%,#083D30_100%)]">
       <div className="pointer-events-none absolute inset-0 opacity-20 [background-image:linear-gradient(rgba(255,255,255,0.04)_1px,transparent_1px),linear-gradient(90deg,rgba(255,255,255,0.04)_1px,transparent_1px)] [background-size:56px_56px]" />
       <div className="relative mx-auto flex min-h-dvh w-full max-w-6xl items-stretch justify-center px-0 py-0 sm:px-6 sm:py-10 lg:items-center">
-        <div className="w-full max-w-[440px] overflow-hidden bg-[#F7FBF9] shadow-lift sm:rounded-[2rem] sm:border sm:border-white/25">
+        <div className="w-full max-w-[440px] overflow-hidden bg-hb-fog shadow-lift sm:rounded-[2rem] sm:border sm:border-hb-gold/25">
           {children}
         </div>
       </div>

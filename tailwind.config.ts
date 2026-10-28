@@ -10,18 +10,21 @@ const config: Config = {
     extend: {
       colors: {
         hb: {
-          ink: "#14110B",
-          forest: "#0F3D32",
-          leaf: "#1F6B54",
-          mint: "#3DBE8B",
-          gold: "#C9A227",
-          goldSoft: "#E8C547",
-          goldDeep: "#9A7B1A",
-          action: "#C9A227",
-          actionDark: "#9A7B1A",
-          mist: "#F3F0E4",
-          fog: "#F7F4EA",
-          sand: "#E4DCC8",
+          /* Neutrals — warm ivory so gold reads clean */
+          ink: "#1A160F",
+          mist: "#FFF8E7",
+          fog: "#FFFBF3",
+          sand: "#EDE0C4",
+          /* Primary — yellow gold */
+          gold: "#D4A017",
+          goldSoft: "#F0C94A",
+          goldDeep: "#A67C00",
+          action: "#D4A017",
+          actionDark: "#A67C00",
+          /* Secondary — emerald green */
+          forest: "#0B5C45",
+          leaf: "#147A5A",
+          mint: "#2FA87A",
           warn: "#C45C26",
           danger: "#B42318",
         },
@@ -31,21 +34,21 @@ const config: Config = {
         sans: ["var(--font-sans)", "system-ui", "sans-serif"],
       },
       boxShadow: {
-        soft: "0 10px 40px -18px rgba(20, 17, 11, 0.28)",
-        lift: "0 18px 50px -24px rgba(201, 162, 39, 0.45)",
-        nav: "0 -8px 30px -16px rgba(20, 17, 11, 0.22)",
+        soft: "0 10px 40px -18px rgba(26, 22, 15, 0.22)",
+        lift: "0 18px 48px -20px rgba(212, 160, 23, 0.42)",
+        nav: "0 -8px 30px -16px rgba(26, 22, 15, 0.2)",
       },
       backgroundImage: {
         "hb-mesh":
-          "radial-gradient(1200px 600px at 10% -10%, rgba(232,197,71,0.22), transparent 55%), radial-gradient(900px 500px at 100% 0%, rgba(31,107,84,0.18), transparent 50%), linear-gradient(180deg, #F7F4EA 0%, #F3F0E4 48%, #FAF8F2 100%)",
+          "radial-gradient(1100px 560px at 8% -12%, rgba(240,201,74,0.28), transparent 52%), radial-gradient(900px 480px at 100% 0%, rgba(11,92,69,0.12), transparent 48%), linear-gradient(180deg, #FFFBF3 0%, #FFF8E7 52%, #FFFAF0 100%)",
         "hb-banner":
-          "linear-gradient(135deg, #0F3D32 0%, #1F6B54 38%, #C9A227 100%)",
+          "linear-gradient(135deg, #0B5C45 0%, #147A5A 40%, #D4A017 100%)",
         "hb-cta":
-          "linear-gradient(105deg, #E8C547 0%, #C9A227 48%, #9A7B1A 100%)",
+          "linear-gradient(110deg, #F0C94A 0%, #D4A017 45%, #A67C00 100%)",
         "hb-card":
-          "linear-gradient(160deg, rgba(255,255,255,0.94), rgba(247,244,234,0.9))",
+          "linear-gradient(160deg, rgba(255,255,255,0.96), rgba(255,248,231,0.92))",
         "hb-sidebar":
-          "linear-gradient(180deg, #0A1F1A 0%, #0F3D32 48%, #123F35 100%)",
+          "linear-gradient(180deg, #062E24 0%, #0B5C45 55%, #0A4A38 100%)",
       },
       keyframes: {
         "fade-up": {

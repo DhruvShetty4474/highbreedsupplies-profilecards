@@ -76,22 +76,22 @@ export function AdminQuickActions() {
                 "rounded-[24px] p-4 shadow-soft transition hover:brightness-[1.02]",
                 action.wide ? "col-span-2" : "col-span-1",
                 action.tone === "primary"
-                  ? "bg-hb-action text-white shadow-lift"
+                  ? "bg-hb-cta text-hb-ink shadow-lift"
                   : "border border-hb-sand/80 bg-white text-hb-ink",
               ].join(" ")}
             >
               <Icon
                 className={
                   action.tone === "primary"
-                    ? "h-5 w-5 text-white"
-                    : "h-5 w-5 text-hb-action"
+                    ? "h-5 w-5 text-hb-ink"
+                    : "h-5 w-5 text-hb-forest"
                 }
               />
               <p className="mt-3 text-base font-semibold">{action.label}</p>
               <p
                 className={
                   action.tone === "primary"
-                    ? "mt-1 text-xs text-white/80"
+                    ? "mt-1 text-xs text-hb-ink/70"
                     : "mt-1 text-xs text-hb-leaf"
                 }
               >
