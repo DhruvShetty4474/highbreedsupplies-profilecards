@@ -1,98 +1,55 @@
-import {
-  DEMO_ROLE_COOKIE,
-  DEMO_SESSION_COOKIE,
-} from "@/lib/auth";
-import {
-  DEMO_REGISTRY_COOKIE,
-  attachDemoRegistryCookie,
-  hydrateDemoAccountsFromCookie,
-} from "@/lib/demo-registry";
-import { findAccountByLogin } from "@/lib/demo-store";
-import { createClient } from "@/lib/supabase/server";
-import { isDemoMode } from "@/lib/utils";
-import { cookies } from "next/headers";
+import { eq } from "drizzle-orm";
 import { NextResponse } from "next/server";
 import { z } from "zod";
+import { getDb, schema } from "@/db";
+import { getAuth } from "@/lib/auth-server";
+import { fetchProfileById } from "@/lib/data";
 
-const schema = z.object({
+const schemaBody = z.object({
   login_id: z.string().min(1),
   password: z.string().min(1),
 });
 
+/** Resolve "email or username" to the account email. */
+async function resolveEmail(loginId: string) {
+  const id = loginId.trim().toLowerCase();
+  if (id.includes("@")) return id;
+  const row = await getDb()
+    .select({ email: schema.user.email })
+    .from(schema.profiles)
+    .innerJoin(schema.user, eq(schema.user.id, schema.profiles.user_id))
+    .where(eq(schema.profiles.username, id))
+    .get();
+  return row?.email ?? null;
+}
+
 export async function POST(request: Request) {
-  const parsed = schema.safeParse(await request.json().catch(() => null));
+  const parsed = schemaBody.safeParse(await request.json().catch(() => null));
   if (!parsed.success) {
     return NextResponse.json({ error: "Enter login ID and password" }, { status: 400 });
   }
 
-  if (isDemoMode()) {
-    hydrateDemoAccountsFromCookie(
-      cookies().get(DEMO_REGISTRY_COOKIE)?.value
-    );
-    const account = findAccountByLogin(parsed.data.login_id);
-    if (!account || account.password !== parsed.data.password) {
-      return NextResponse.json(
-        {
-          error:
-            "Invalid login ID or password. If you just registered, use the same email and password from this browser.",
-        },
-        { status: 401 }
-      );
-    }
+  const invalid = NextResponse.json(
+    { error: "Invalid login ID or password" },
+    { status: 401 }
+  );
 
-    const response = NextResponse.json({
+  const email = await resolveEmail(parsed.data.login_id);
+  if (!email) return invalid;
+
+  try {
+    // nextCookies() plugin writes the session cookie onto this response.
+    const result = await getAuth().api.signInEmail({
+      body: { email, password: parsed.data.password },
+      headers: request.headers,
+    });
+    const profile = await fetchProfileById(result.user.id);
+    return NextResponse.json({
       ok: true,
-      role: account.profile.role,
-      username: account.profile.username,
+      role: profile?.role ?? "client",
+      username: profile?.username,
     });
-
-    response.cookies.set(DEMO_SESSION_COOKIE, account.user_id, {
-      httpOnly: true,
-      sameSite: "lax",
-      path: "/",
-      maxAge: 60 * 60 * 24 * 7,
-    });
-    response.cookies.set(DEMO_ROLE_COOKIE, account.profile.role, {
-      httpOnly: true,
-      sameSite: "lax",
-      path: "/",
-      maxAge: 60 * 60 * 24 * 7,
-    });
-    attachDemoRegistryCookie(response);
-
-    return response;
+  } catch {
+    return invalid;
   }
-
-  const supabase = createClient();
-  if (!supabase) {
-    return NextResponse.json({ error: "Auth is not configured" }, { status: 503 });
-  }
-
-  const email = parsed.data.login_id.includes("@")
-    ? parsed.data.login_id
-    : `${parsed.data.login_id}@highbreed.local`;
-
-  const { error } = await supabase.auth.signInWithPassword({
-    email,
-    password: parsed.data.password,
-  });
-  if (error) {
-    return NextResponse.json({ error: error.message }, { status: 401 });
-  }
-
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-
-  const { data: profile } = await supabase
-    .from("profiles")
-    .select("role, username")
-    .eq("user_id", user?.id)
-    .maybeSingle();
-
-  return NextResponse.json({
-    ok: true,
-    role: profile?.role ?? "client",
-    username: profile?.username,
-  });
 }

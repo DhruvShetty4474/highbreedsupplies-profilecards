@@ -8,7 +8,7 @@ import { redirect } from "next/navigation";
 
 export const dynamic = "force-dynamic";
 
-type Props = { params: { token: string } };
+type Props = { params: Promise<{ token: string }> };
 
 /** Public card routes: centered card on canvas (same shell as profiles). */
 function PublicCardShell({ children }: { children: React.ReactNode }) {
@@ -25,7 +25,8 @@ function PublicCardShell({ children }: { children: React.ReactNode }) {
 }
 
 export default async function CardTokenRouterPage({ params }: Props) {
-  const card = await fetchCardByToken(params.token);
+  const { token } = await params;
+  const card = await fetchCardByToken(token);
 
   if (!card) {
     return (

@@ -1,20 +1,23 @@
-import { getSessionProfile } from "@/lib/auth";
+import { errorResponse } from "@/lib/api";
+import { requireAdmin } from "@/lib/auth";
 import { fetchCardById } from "@/lib/data";
 import { NextResponse } from "next/server";
 
-type Params = { params: { card_id: string } };
+type Params = { params: Promise<{ card_id: string }> };
 
 /**
  * Factory provisioning payload for NXP TagWriter / USB writers.
  * Protected by admin session. Returns the exact NFC URI string to write.
  */
 export async function GET(_request: Request, { params }: Params) {
-  const profile = await getSessionProfile();
-  if (!profile || profile.role !== "admin") {
-    return NextResponse.json({ error: "Admin access required" }, { status: 403 });
+  try {
+    await requireAdmin();
+  } catch (err) {
+    return errorResponse(err);
   }
 
-  const card = await fetchCardById(params.card_id);
+  const { card_id } = await params;
+  const card = await fetchCardById(card_id);
   if (!card) {
     return NextResponse.json({ error: "Card not found" }, { status: 404 });
   }

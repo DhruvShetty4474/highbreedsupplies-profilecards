@@ -2,11 +2,11 @@ import { fetchProfileById, fetchProfileByUsername } from "@/lib/data";
 import { buildVCard } from "@/lib/vcard";
 import { NextResponse } from "next/server";
 
-type Params = { params: { id: string } };
+type Params = { params: Promise<{ id: string }> };
 
 export async function GET(_request: Request, { params }: Params) {
-  const id = params.id;
-  let profile = await fetchProfileById(id);
+  const { id } = await params;
+  let profile = /^[0-9A-Za-z]{20,}$/.test(id) ? await fetchProfileById(id) : null;
   if (!profile) {
     profile = await fetchProfileByUsername(id);
   }

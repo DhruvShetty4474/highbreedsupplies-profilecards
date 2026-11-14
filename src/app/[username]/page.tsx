@@ -17,11 +17,12 @@ const RESERVED = new Set([
   "settings",
 ]);
 
-type Props = { params: { username: string } };
+type Props = { params: Promise<{ username: string }> };
 
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
-  if (RESERVED.has(params.username.toLowerCase())) return {};
-  const profile = await fetchProfileByUsername(params.username);
+  const { username } = await params;
+  if (RESERVED.has(username.toLowerCase())) return {};
+  const profile = await fetchProfileByUsername(username);
   if (!profile) return { title: "Profile not found" };
   return {
     title: `${profile.full_name} · @${profile.username}`,
@@ -35,9 +36,10 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
 }
 
 export default async function UsernameProfilePage({ params }: Props) {
-  if (RESERVED.has(params.username.toLowerCase())) notFound();
+  const { username } = await params;
+  if (RESERVED.has(username.toLowerCase())) notFound();
 
-  const profile = await fetchProfileByUsername(params.username);
+  const profile = await fetchProfileByUsername(username);
   if (!profile) notFound();
 
   return <PublicProfile profile={profile} />;

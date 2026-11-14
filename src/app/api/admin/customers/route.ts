@@ -1,92 +1,72 @@
-import { getSessionProfile } from "@/lib/auth";
-import {
-  DEMO_REGISTRY_COOKIE,
-  attachDemoRegistryCookie,
-  hydrateDemoAccountsFromCookie,
-} from "@/lib/demo-registry";
-import {
-  createDemoCustomer,
-  listClientAccounts,
-} from "@/lib/demo-store";
-import { isDemoMode } from "@/lib/utils";
-import { cookies } from "next/headers";
 import { NextResponse } from "next/server";
 import { z } from "zod";
+import { AccountError, createAccountAsAdmin } from "@/lib/accounts";
+import { errorResponse } from "@/lib/api";
+import { requireAdmin } from "@/lib/auth";
+import { fetchClientProfiles } from "@/lib/data";
 
 const createSchema = z.object({
-  login_id: z.string().min(3),
-  password: z.string().min(4),
-  username: z.string().min(3),
+  /** Becomes the username; customers can sign in with it or their email. */
+  login_id: z.string().min(3).max(32).regex(/^[a-z0-9_]+$/i),
+  password: z.string().min(8),
+  username: z.string().min(3).max(32).regex(/^[a-z0-9_]+$/i).optional(),
   full_name: z.string().min(2),
-  email: z.string().optional(),
+  email: z.string().email().optional(),
   phone: z.string().optional(),
   designation: z.string().optional(),
 });
 
 export async function GET() {
-  const profile = await getSessionProfile();
-  if (!profile || profile.role !== "admin") {
-    return NextResponse.json({ error: "Admin access required" }, { status: 403 });
+  try {
+    await requireAdmin();
+    const customers = (await fetchClientProfiles()).map((p) => ({
+      user_id: p.user_id,
+      login_id: p.username,
+      username: p.username,
+      full_name: p.full_name,
+      email: p.email,
+      phone: p.phone,
+      designation: p.designation,
+    }));
+    return NextResponse.json({ customers });
+  } catch (err) {
+    return errorResponse(err);
   }
-
-  if (!isDemoMode()) {
-    return NextResponse.json({
-      error: "Customer listing via API is demo-backed; wire Supabase admin list next.",
-      customers: [],
-    });
-  }
-
-  hydrateDemoAccountsFromCookie(cookies().get(DEMO_REGISTRY_COOKIE)?.value);
-
-  const customers = listClientAccounts().map((a) => ({
-    user_id: a.user_id,
-    login_id: a.login_id,
-    username: a.profile.username,
-    full_name: a.profile.full_name,
-    email: a.profile.email,
-    phone: a.profile.phone,
-    designation: a.profile.designation,
-  }));
-
-  return NextResponse.json({ customers });
 }
 
 export async function POST(request: Request) {
-  const profile = await getSessionProfile();
-  if (!profile || profile.role !== "admin") {
-    return NextResponse.json({ error: "Admin access required" }, { status: 403 });
-  }
-
-  const parsed = createSchema.safeParse(await request.json().catch(() => null));
-  if (!parsed.success) {
-    return NextResponse.json({ error: "Invalid customer payload" }, { status: 400 });
-  }
-
-  if (!isDemoMode()) {
-    return NextResponse.json(
-      { error: "Enable DEMO_MODE or implement Supabase admin user creation." },
-      { status: 503 }
-    );
-  }
-
   try {
-    hydrateDemoAccountsFromCookie(cookies().get(DEMO_REGISTRY_COOKIE)?.value);
-    const created = createDemoCustomer(parsed.data);
-    const response = NextResponse.json({
-      ok: true,
-      customer: {
-        user_id: created.user_id,
-        login_id: created.login_id,
-        username: created.profile.username,
-        full_name: created.profile.full_name,
-      },
-    });
-    attachDemoRegistryCookie(response);
-    return response;
+    await requireAdmin();
+
+    const parsed = createSchema.safeParse(await request.json().catch(() => null));
+    if (!parsed.success) {
+      return NextResponse.json({ error: "Invalid customer payload" }, { status: 400 });
+    }
+    const d = parsed.data;
+    const username = (d.username || d.login_id).toLowerCase();
+    // Auth needs an email; without one, use a non-deliverable placeholder.
+    const email = (d.email || `${username}@customers.highbreed.invalid`).toLowerCase();
+
+    try {
+      const userId = await createAccountAsAdmin({
+        email,
+        password: d.password,
+        full_name: d.full_name,
+        username,
+        phone: d.phone,
+        designation: d.designation,
+      });
+      return NextResponse.json({
+        ok: true,
+        customer: { user_id: userId, login_id: username, username, full_name: d.full_name },
+      });
+    } catch (err) {
+      if (err instanceof AccountError) {
+        return NextResponse.json({ error: err.message }, { status: err.status });
+      }
+      throw err;
+    }
   } catch (err) {
-    return NextResponse.json(
-      { error: err instanceof Error ? err.message : "Could not create customer" },
-      { status: 400 }
-    );
+    return errorResponse(err);
   }
 }

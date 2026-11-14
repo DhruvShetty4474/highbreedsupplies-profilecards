@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { FormEvent, useState } from "react";
@@ -61,9 +62,9 @@ export function LoginForm({ nextPath }: { nextPath?: string }) {
       </Button>
       <p className="text-center text-xs leading-relaxed text-hb-leaf">
         Role is assigned automatically from your account.{" "}
-        <a href="/register" className="font-semibold text-hb-action">
+        <Link href="/register" className="font-semibold text-hb-action">
           Create a customer account
-        </a>
+        </Link>
       </p>
     </form>
   );

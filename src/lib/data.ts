@@ -1,159 +1,204 @@
+import { count, desc, eq, sql } from "drizzle-orm";
+import { getDb, schema } from "@/db";
 import {
-  getDemoCardById,
-  getDemoCardByToken,
-  getDemoLeadsForUser,
-  getDemoMetrics,
-  getDemoProfileById,
-  getDemoProfileByUsername,
-  demoCards,
-} from "@/lib/demo-data";
-import { createClient, createServiceClient } from "@/lib/supabase/server";
-import type { AdminMetrics, Card, Lead, Profile } from "@/lib/types";
-import {
-  DEMO_REGISTRY_COOKIE,
-  hydrateDemoAccountsFromCookie,
-} from "@/lib/demo-registry";
-import { isDemoMode } from "@/lib/utils";
-import { cookies } from "next/headers";
+  DEFAULT_PROFILE_LAYOUT,
+  type AdminMetrics,
+  type Card,
+  type Lead,
+  type Profile,
+} from "@/lib/types";
 
-function ensureDemoHydrated() {
-  if (!isDemoMode()) return;
-  try {
-    hydrateDemoAccountsFromCookie(
-      cookies().get(DEMO_REGISTRY_COOKIE)?.value
-    );
-  } catch {
-    // cookies() unavailable in some static contexts — seed accounts still work
-  }
+type ProfileRow = typeof schema.profiles.$inferSelect;
+
+export function toProfile(row: ProfileRow): Profile {
+  return {
+    user_id: row.user_id,
+    username: row.username,
+    full_name: row.full_name,
+    designation: row.designation,
+    location: row.location,
+    bio: row.bio,
+    avatar_url: row.avatar_url,
+    banner_url: row.banner_url,
+    video_url: row.video_url,
+    phone: row.phone,
+    email: row.email,
+    social_links: row.social_links ?? [],
+    content_blocks: row.content_blocks ?? [],
+    layout: row.layout ?? DEFAULT_PROFILE_LAYOUT,
+    role: row.role,
+    theme: row.theme ?? undefined,
+    created_at: row.created_at,
+    updated_at: row.updated_at,
+  };
 }
 
 export async function fetchProfileByUsername(
   username: string
 ): Promise<Profile | null> {
-  if (isDemoMode()) {
-    ensureDemoHydrated();
-    return getDemoProfileByUsername(username) ?? null;
-  }
-
-  const supabase = createClient() ?? createServiceClient();
-  if (!supabase) return getDemoProfileByUsername(username) ?? null;
-
-  const { data } = await supabase
-    .from("profiles")
-    .select("*")
-    .eq("username", username.toLowerCase())
-    .maybeSingle();
-
-  return (data as Profile | null) ?? null;
+  const row = await getDb()
+    .select()
+    .from(schema.profiles)
+    .where(eq(schema.profiles.username, username.toLowerCase()))
+    .get();
+  return row ? toProfile(row) : null;
 }
 
-export async function fetchProfileById(
-  userId: string
-): Promise<Profile | null> {
-  if (isDemoMode()) {
-    ensureDemoHydrated();
-    return getDemoProfileById(userId) ?? null;
-  }
+export async function fetchProfileById(userId: string): Promise<Profile | null> {
+  const row = await getDb()
+    .select()
+    .from(schema.profiles)
+    .where(eq(schema.profiles.user_id, userId))
+    .get();
+  return row ? toProfile(row) : null;
+}
 
-  const supabase = createClient() ?? createServiceClient();
-  if (!supabase) return getDemoProfileById(userId) ?? null;
-
-  const { data } = await supabase
-    .from("profiles")
-    .select("*")
-    .eq("user_id", userId)
-    .maybeSingle();
-
-  return (data as Profile | null) ?? null;
+/** Admin-only callers: list client profiles. */
+export async function fetchClientProfiles(): Promise<Profile[]> {
+  const rows = await getDb()
+    .select()
+    .from(schema.profiles)
+    .where(eq(schema.profiles.role, "client"))
+    .orderBy(desc(schema.profiles.created_at));
+  return rows.map(toProfile);
 }
 
 export async function fetchCardByToken(token: string): Promise<Card | null> {
-  if (isDemoMode()) return getDemoCardByToken(token) ?? null;
-
-  const supabase = createClient() ?? createServiceClient();
-  if (!supabase) return getDemoCardByToken(token) ?? null;
-
-  const { data } = await supabase
-    .from("cards")
-    .select("*")
-    .eq("public_token", token)
-    .maybeSingle();
-
-  return (data as Card | null) ?? null;
+  return (
+    (await getDb()
+      .select()
+      .from(schema.cards)
+      .where(eq(schema.cards.public_token, token))
+      .get()) ?? null
+  );
 }
 
 export async function fetchCardById(cardId: string): Promise<Card | null> {
-  if (isDemoMode()) return getDemoCardById(cardId) ?? null;
+  return (
+    (await getDb()
+      .select()
+      .from(schema.cards)
+      .where(eq(schema.cards.card_id, cardId))
+      .get()) ?? null
+  );
+}
 
-  const supabase = createClient() ?? createServiceClient();
-  if (!supabase) return getDemoCardById(cardId) ?? null;
+export async function fetchCardsForUser(userId: string): Promise<Card[]> {
+  return getDb()
+    .select()
+    .from(schema.cards)
+    .where(eq(schema.cards.user_id, userId))
+    .orderBy(schema.cards.card_id);
+}
 
-  const { data } = await supabase
-    .from("cards")
-    .select("*")
-    .eq("card_id", cardId)
-    .maybeSingle();
-
-  return (data as Card | null) ?? null;
+/** Admin-only callers. */
+export async function fetchAllCards(): Promise<Card[]> {
+  return getDb().select().from(schema.cards).orderBy(schema.cards.card_id);
 }
 
 export async function fetchLeadsForUser(userId: string): Promise<Lead[]> {
-  if (isDemoMode()) return getDemoLeadsForUser(userId);
-
-  const supabase = createClient();
-  if (!supabase) return getDemoLeadsForUser(userId);
-
-  const { data } = await supabase
-    .from("leads")
-    .select("*")
-    .eq("cardholder_user_id", userId)
-    .order("created_at", { ascending: false });
-
-  return (data as Lead[]) ?? [];
+  return getDb()
+    .select()
+    .from(schema.leads)
+    .where(eq(schema.leads.cardholder_user_id, userId))
+    .orderBy(desc(schema.leads.created_at));
 }
 
-export async function fetchAllCards(): Promise<Card[]> {
-  if (isDemoMode()) return demoCards;
+export type ProfileStats = {
+  reaches: number;
+  shares: number;
+  contact_saves: number;
+  leads: number;
+};
 
-  const supabase = createClient();
-  if (!supabase) return demoCards;
+export async function fetchStats(userId: string): Promise<ProfileStats> {
+  const db = getDb();
+  const [row, leadCount] = await Promise.all([
+    db
+      .select({
+        reaches: schema.profiles.stat_reaches,
+        shares: schema.profiles.stat_shares,
+        contact_saves: schema.profiles.stat_contact_saves,
+      })
+      .from(schema.profiles)
+      .where(eq(schema.profiles.user_id, userId))
+      .get(),
+    db
+      .select({ n: count() })
+      .from(schema.leads)
+      .where(eq(schema.leads.cardholder_user_id, userId))
+      .get(),
+  ]);
+  return {
+    reaches: row?.reaches ?? 0,
+    shares: row?.shares ?? 0,
+    contact_saves: row?.contact_saves ?? 0,
+    leads: leadCount?.n ?? 0,
+  };
+}
 
-  const { data } = await supabase
-    .from("cards")
-    .select("*")
-    .order("card_id", { ascending: true });
+const statColumn = {
+  reach: "stat_reaches",
+  share: "stat_shares",
+  contact_save: "stat_contact_saves",
+} as const;
 
-  return (data as Card[]) ?? [];
+export async function bumpStat(
+  userId: string,
+  event: keyof typeof statColumn
+) {
+  const col = schema.profiles[statColumn[event]];
+  await getDb()
+    .update(schema.profiles)
+    .set({ [statColumn[event]]: sql`${col} + 1` })
+    .where(eq(schema.profiles.user_id, userId));
+}
+
+export async function fetchSharePrefs(userId: string) {
+  const row = await getDb()
+    .select({
+      offline: schema.profiles.share_offline,
+      quick_share: schema.profiles.quick_share,
+    })
+    .from(schema.profiles)
+    .where(eq(schema.profiles.user_id, userId))
+    .get();
+  return {
+    user_id: userId,
+    offline: row?.offline ?? false,
+    quick_share: row?.quick_share ?? null,
+  };
 }
 
 export async function fetchAdminMetrics(): Promise<AdminMetrics> {
-  if (isDemoMode()) return getDemoMetrics();
-
-  const supabase = createClient();
-  if (!supabase) return getDemoMetrics();
-
-  const [
-    { data: cards },
-    { count: profiles },
-    { count: leads },
-    { count: batches },
-  ] = await Promise.all([
-    supabase.from("cards").select("status, programming_verified"),
-    supabase.from("profiles").select("*", { count: "exact", head: true }),
-    supabase.from("leads").select("*", { count: "exact", head: true }),
-    supabase.from("card_batches").select("*", { count: "exact", head: true }),
+  const db = getDb();
+  const [byStatus, programmed, profiles, leadsN, batches] = await Promise.all([
+    db
+      .select({ status: schema.cards.status, n: count() })
+      .from(schema.cards)
+      .groupBy(schema.cards.status),
+    db
+      .select({ n: count() })
+      .from(schema.cards)
+      .where(eq(schema.cards.programming_verified, true))
+      .get(),
+    db
+      .select({ n: count() })
+      .from(schema.profiles)
+      .where(eq(schema.profiles.role, "client"))
+      .get(),
+    db.select({ n: count() }).from(schema.leads).get(),
+    db.select({ n: count() }).from(schema.cardBatches).get(),
   ]);
-
-  const list = (cards ?? []) as Pick<Card, "status" | "programming_verified">[];
-
+  const by = (s: string) => byStatus.find((r) => r.status === s)?.n ?? 0;
   return {
-    total_cards: list.length,
-    unclaimed: list.filter((c) => c.status === "UNCLAIMED").length,
-    active: list.filter((c) => c.status === "ACTIVE").length,
-    blocked: list.filter((c) => c.status === "BLOCKED").length,
-    programmed: list.filter((c) => c.programming_verified).length,
-    total_profiles: profiles ?? 0,
-    total_leads: leads ?? 0,
-    batches: batches ?? 0,
+    total_cards: byStatus.reduce((a, r) => a + r.n, 0),
+    unclaimed: by("UNCLAIMED"),
+    active: by("ACTIVE"),
+    blocked: by("BLOCKED"),
+    programmed: programmed?.n ?? 0,
+    total_profiles: profiles?.n ?? 0,
+    total_leads: leadsN?.n ?? 0,
+    batches: batches?.n ?? 0,
   };
 }

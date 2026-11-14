@@ -1,8 +1,8 @@
-import { bumpStat, getStats } from "@/lib/demo-store";
-import { getSessionProfile } from "@/lib/auth";
-import { isDemoMode } from "@/lib/utils";
 import { NextResponse } from "next/server";
 import { z } from "zod";
+import { errorResponse } from "@/lib/api";
+import { requireUser } from "@/lib/auth";
+import { bumpStat, fetchStats } from "@/lib/data";
 
 const eventSchema = z.object({
   user_id: z.string().min(1),
@@ -15,44 +15,19 @@ export async function POST(request: Request) {
   if (!parsed.success) {
     return NextResponse.json({ error: "Invalid event" }, { status: 400 });
   }
-
-  if (!isDemoMode()) {
-    return NextResponse.json({ ok: true, recorded: false });
-  }
-
-  const field =
-    parsed.data.event === "reach"
-      ? "reaches"
-      : parsed.data.event === "share"
-        ? "shares"
-        : "contact_saves";
-
-  const stats = bumpStat(parsed.data.user_id, field);
-  return NextResponse.json({ ok: true, stats });
+  await bumpStat(parsed.data.user_id, parsed.data.event);
+  return NextResponse.json({ ok: true });
 }
 
-/** Authenticated: read own (or admin) stats */
+/** Authenticated: read own (or, for admins, any user's) stats */
 export async function GET(request: Request) {
-  const profile = await getSessionProfile();
-  if (!profile) {
-    return NextResponse.json({ error: "Authentication required" }, { status: 401 });
+  try {
+    const profile = await requireUser();
+    const requested = new URL(request.url).searchParams.get("user_id");
+    const userId =
+      profile.role === "admin" && requested ? requested : profile.user_id;
+    return NextResponse.json(await fetchStats(userId));
+  } catch (err) {
+    return errorResponse(err);
   }
-
-  const { searchParams } = new URL(request.url);
-  const userId =
-    profile.role === "admin" && searchParams.get("user_id")
-      ? searchParams.get("user_id")!
-      : profile.user_id;
-
-  if (!isDemoMode()) {
-    return NextResponse.json({
-      reaches: 0,
-      shares: 0,
-      contact_saves: 0,
-      leads: 0,
-    });
-  }
-
-  const stats = getStats(userId);
-  return NextResponse.json(stats);
 }

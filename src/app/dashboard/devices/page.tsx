@@ -1,7 +1,7 @@
 import { DeviceClaimForm } from "@/components/dashboard/device-claim-form";
 import { Badge } from "@/components/ui/badge";
 import { getSessionProfile } from "@/lib/auth";
-import { fetchAllCards } from "@/lib/data";
+import { fetchCardsForUser } from "@/lib/data";
 import { redirect } from "next/navigation";
 
 export const metadata = { title: "Cards / Devices" };
@@ -10,11 +10,7 @@ export default async function DashboardDevicesPage() {
   const profile = await getSessionProfile();
   if (!profile) redirect("/login");
 
-  const cards = await fetchAllCards();
-  const mine = cards.filter((c) => c.user_id === profile.user_id);
-  const claimable = cards.filter(
-    (c) => c.status === "UNCLAIMED" && c.programming_verified
-  );
+  const mine = await fetchCardsForUser(profile.user_id);
 
   return (
     <div>
@@ -63,7 +59,7 @@ export default async function DashboardDevicesPage() {
             Claim a card
           </h2>
           <DeviceClaimForm
-            suggestions={claimable.map((c) => c.public_token)}
+            suggestions={[]}
           />
         </section>
       </div>

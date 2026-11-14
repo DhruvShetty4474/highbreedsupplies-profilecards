@@ -1,7 +1,5 @@
 import { getSessionProfile } from "@/lib/auth";
-import { fetchAllCards, fetchLeadsForUser } from "@/lib/data";
-import { getStats } from "@/lib/demo-store";
-import { isDemoMode } from "@/lib/utils";
+import { fetchCardsForUser, fetchLeadsForUser, fetchStats } from "@/lib/data";
 import {
   ArrowUpRight,
   CreditCard,
@@ -21,14 +19,11 @@ export default async function DashboardHomePage() {
   const profile = await getSessionProfile();
   if (!profile) redirect("/login");
 
-  const [leads, cards] = await Promise.all([
+  const [leads, myCards, stats] = await Promise.all([
     fetchLeadsForUser(profile.user_id),
-    fetchAllCards(),
+    fetchCardsForUser(profile.user_id),
+    fetchStats(profile.user_id),
   ]);
-  const myCards = cards.filter((c) => c.user_id === profile.user_id);
-  const stats = isDemoMode()
-    ? getStats(profile.user_id)
-    : { reaches: 0, shares: 0, contact_saves: 0 };
 
   return (
     <div>

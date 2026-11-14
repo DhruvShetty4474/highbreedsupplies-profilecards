@@ -1,22 +1,18 @@
+import { fetchClientProfiles, fetchStats } from "@/lib/data";
 import { CreateCustomerForm } from "@/components/admin/create-customer-form";
-import {
-  DEMO_REGISTRY_COOKIE,
-  hydrateDemoAccountsFromCookie,
-} from "@/lib/demo-registry";
-import { getStats, listClientAccounts } from "@/lib/demo-store";
-import { isDemoMode } from "@/lib/utils";
-import { cookies } from "next/headers";
 import Link from "next/link";
 
 export const metadata = { title: "Customers" };
 
-export default function AdminCustomersPage() {
-  if (isDemoMode()) {
-    hydrateDemoAccountsFromCookie(
-      cookies().get(DEMO_REGISTRY_COOKIE)?.value
-    );
-  }
-  const customers = isDemoMode() ? listClientAccounts() : [];
+export default async function AdminCustomersPage() {
+  const customers = await Promise.all(
+    (await fetchClientProfiles()).map(async (p) => ({
+      user_id: p.user_id,
+      login_id: p.username,
+      profile: p,
+      stats: await fetchStats(p.user_id),
+    }))
+  );
 
   return (
     <div>
@@ -27,9 +23,9 @@ export default function AdminCustomersPage() {
         <h1 className="mt-1 font-display text-4xl text-hb-ink">Customers</h1>
         <p className="mt-2 max-w-2xl text-sm leading-relaxed text-hb-leaf">
           Create login IDs here, or customers can self-register at{" "}
-          <a href="/register" className="font-semibold text-hb-action">
+          <Link href="/register" className="font-semibold text-hb-action">
             /register
-          </a>
+          </Link>
           . Self-registered users appear in this list so you can edit and share
           their pages.
         </p>
@@ -51,7 +47,7 @@ export default function AdminCustomersPage() {
         </div>
         <ul className="divide-y divide-hb-sand/70">
           {customers.map((c) => {
-            const stats = getStats(c.user_id);
+            const stats = c.stats;
             return (
               <li
                 key={c.user_id}

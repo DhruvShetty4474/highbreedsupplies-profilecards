@@ -1,26 +1,27 @@
 import { SharePagePanel } from "@/components/share/share-page-panel";
-import { getDemoProfileById } from "@/lib/demo-store";
-import { getSharePrefs, publicProfileUrl } from "@/lib/share-prefs";
-import { appUrl, isDemoMode } from "@/lib/utils";
+import { fetchProfileById } from "@/lib/data";
+import { fetchSharePrefs } from "@/lib/data";
+import { publicProfileUrl } from "@/lib/share-prefs";
+import { appUrl } from "@/lib/utils";
 import Link from "next/link";
 import { headers } from "next/headers";
 import { notFound } from "next/navigation";
 
 export const metadata = { title: "Share page" };
 
-type Props = { params: { userId: string } };
+type Props = { params: Promise<{ userId: string }> };
 
-export default function AdminShareCustomerPage({ params }: Props) {
-  if (!isDemoMode()) notFound();
-  const profile = getDemoProfileById(params.userId);
+export default async function AdminShareCustomerPage({ params }: Props) {
+  const { userId } = await params;
+  const profile = await fetchProfileById(userId);
   if (!profile || profile.role !== "client") notFound();
 
-  const h = headers();
+  const h = await headers();
   const host = h.get("x-forwarded-host") || h.get("host");
   const proto = h.get("x-forwarded-proto") || "http";
   const origin = host ? `${proto}://${host}` : appUrl();
   const pageUrl = publicProfileUrl(profile.username, origin);
-  const prefs = getSharePrefs(profile.user_id);
+  const prefs = await fetchSharePrefs(profile.user_id);
 
   return (
     <div>

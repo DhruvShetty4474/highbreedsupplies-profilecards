@@ -1,206 +1,89 @@
 /**
- * Seed HIGHBREED demo users, profiles, cards, and leads.
+ * Generate seed SQL for D1: one admin, one client, a demo batch of cards.
  *
- * Usage:
- *   SUPABASE_SERVICE_ROLE_KEY=... NEXT_PUBLIC_SUPABASE_URL=... npm run db:seed
+ *   npm run db:seed:local      # writes .seed/seed.sql and applies it locally
  *
- * Requires the SQL migration in supabase/migrations/001_initial_schema.sql
- * to be applied first.
+ * Passwords are hashed with Better Auth's own hasher so sign-in works.
+ * Override defaults with SEED_ADMIN_EMAIL / SEED_ADMIN_PASSWORD.
+ * Safe to re-run: every insert is INSERT OR IGNORE.
  */
+import { mkdirSync, writeFileSync } from "node:fs";
+import { randomUUID } from "node:crypto";
+import { hashPassword } from "better-auth/crypto";
+import { customAlphabet } from "nanoid";
 
-import { createClient } from "@supabase/supabase-js";
-import { randomBytes } from "crypto";
+const appUrl = (process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000").replace(/\/$/, "");
+const token = customAlphabet(
+  "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789",
+  24
+);
+const q = (v: string | null) => (v === null ? "NULL" : `'${v.replace(/'/g, "''")}'`);
 
-const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
-const serviceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
-const appUrl =
-  process.env.NEXT_PUBLIC_APP_URL?.replace(/\/$/, "") ||
-  "https://highbreedsupplies.com";
+type SeedUser = {
+  email: string;
+  password: string;
+  name: string;
+  username: string;
+  role: "admin" | "client";
+  designation: string;
+};
 
-if (!url || !serviceKey) {
-  console.error("Missing NEXT_PUBLIC_SUPABASE_URL or SUPABASE_SERVICE_ROLE_KEY");
-  process.exit(1);
-}
-
-const supabase = createClient(url, serviceKey, {
-  auth: { persistSession: false, autoRefreshToken: false },
-});
-
-function token() {
-  return `tok_${randomBytes(12).toString("hex")}`;
-}
-
-async function ensureUser(email: string, password: string, meta: Record<string, string>) {
-  const { data: listed } = await supabase.auth.admin.listUsers({ perPage: 200 });
-  const existing = listed?.users?.find((u) => u.email === email);
-  if (existing) return existing.id;
-
-  const { data, error } = await supabase.auth.admin.createUser({
-    email,
-    password,
-    email_confirm: true,
-    user_metadata: meta,
-  });
-  if (error || !data.user) {
-    throw new Error(error?.message || `Failed creating ${email}`);
-  }
-  return data.user.id;
-}
-
-async function main() {
-  console.log("Seeding HIGHBREED…");
-
-  const adminId = await ensureUser("admin@highbreedsupplies.com", "HighbreedAdmin!23", {
-    full_name: "HIGHBREED Admin",
+const users: SeedUser[] = [
+  {
+    email: process.env.SEED_ADMIN_EMAIL || "admin@highbreedsupplies.com",
+    password: process.env.SEED_ADMIN_PASSWORD || "HighbreedAdmin!23",
+    name: "HIGHBREED Admin",
     username: "highbreed_admin",
     role: "admin",
-  });
+    designation: "Platform Administrator",
+  },
+  {
+    email: "client@example.com",
+    password: "HighbreedClient!23",
+    name: "Sample Client",
+    username: "sample_client",
+    role: "client",
+    designation: "Founder",
+  },
+];
 
-  const clientId = await ensureUser(
-    "pranay@highbreedsupplies.com",
-    "HighbreedClient!23",
-    {
-      full_name: "Highbreed Supplies",
-      username: "pranay_brid",
-      role: "client",
-    }
+async function main() {
+  const now = Date.now();
+  const out: string[] = [];
+
+  for (const u of users) {
+    const id = randomUUID().replace(/-/g, "");
+    const hash = await hashPassword(u.password);
+    // Re-runs keep the existing user (email is UNIQUE), so later rows that
+    // reference `id` look the real id up by email.
+    out.push(
+      `INSERT OR IGNORE INTO user (id,name,email,email_verified,created_at,updated_at) VALUES (${q(id)},${q(u.name)},${q(u.email)},1,${now},${now});`,
+      `INSERT OR IGNORE INTO account (id,account_id,provider_id,user_id,password,created_at,updated_at) SELECT ${q(randomUUID())}, id, 'credential', id, ${q(hash)}, ${now}, ${now} FROM user WHERE email=${q(u.email)} AND NOT EXISTS (SELECT 1 FROM account WHERE user_id=user.id AND provider_id='credential');`,
+      `INSERT OR IGNORE INTO profiles (user_id,username,full_name,designation,email,role) SELECT id, ${q(u.username)}, ${q(u.name)}, ${q(u.designation)}, ${q(u.email)}, ${q(u.role)} FROM user WHERE email=${q(u.email)};`,
+      // Make sure a re-seed also fixes the role (admin set server-side only).
+      `UPDATE profiles SET role=${q(u.role)} WHERE user_id=(SELECT id FROM user WHERE email=${q(u.email)});`
+    );
+  }
+
+  const batchId = "BATCH-SEED-001";
+  out.push(
+    `INSERT OR IGNORE INTO card_batches (batch_id,label,quantity,notes) VALUES (${q(batchId)},'Seed batch',5,'Local development cards');`
   );
+  for (let i = 1; i <= 5; i++) {
+    const t = `tok_${token()}`;
+    const url = `${appUrl}/c/${t}`;
+    out.push(
+      `INSERT OR IGNORE INTO cards (card_id,public_token,nfc_url,qr_url,batch_id) VALUES (${q(`HB${String(i).padStart(6, "0")}`)},${q(t)},${q(url)},${q(url)},${q(batchId)});`
+    );
+  }
 
-  await supabase.from("profiles").upsert([
-    {
-      user_id: adminId,
-      username: "highbreed_admin",
-      full_name: "HIGHBREED Admin",
-      designation: "Platform Administrator",
-      location: "Mumbai",
-      role: "admin",
-      email: "admin@highbreedsupplies.com",
-    },
-    {
-      user_id: clientId,
-      username: "pranay_brid",
-      full_name: "Highbreed Supplies",
-      designation: "Founder at Highbreed Supplies",
-      location: "Mumbai",
-      bio: "Premium NFC HighCards and digital identity for modern businesses.",
-      phone: "+917718090545",
-      email: "highbreedworkflow1360@gmail.com",
-      role: "client",
-      video_url:
-        "https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerEscapes.mp4",
-      social_links: [
-        {
-          id: "s1",
-          type: "website",
-          label: "Website",
-          path: "https://highbreedsupplies.com",
-        },
-        {
-          id: "s2",
-          type: "instagram",
-          label: "Instagram",
-          path: "https://instagram.com/highbreedsupplies",
-        },
-        {
-          id: "s3",
-          type: "linkedin",
-          label: "LinkedIn",
-          path: "https://linkedin.com/company/highbreed-supplies",
-        },
-        {
-          id: "s4",
-          type: "whatsapp",
-          label: "WhatsApp",
-          path: "https://wa.me/917718090545",
-        },
-        {
-          id: "s5",
-          type: "google_review",
-          label: "Leave a Google Review",
-          path: "https://g.page/r/highbreed/review",
-        },
-      ],
-    },
-  ]);
-
-  await supabase.from("card_batches").upsert({
-    batch_id: "BATCH-2026-001",
-    label: "Factory Run A — Mumbai",
-    quantity: 4,
-    notes: "Seed batch",
-    created_by: adminId,
-  });
-
-  const tokens = [token(), token(), token(), token()];
-  const cards = [
-    {
-      card_id: "HB000001",
-      public_token: tokens[0],
-      status: "UNCLAIMED",
-      programming_verified: false,
-      user_id: null,
-    },
-    {
-      card_id: "HB000002",
-      public_token: tokens[1],
-      status: "ACTIVE",
-      programming_verified: true,
-      user_id: clientId,
-      programmed_at: new Date().toISOString(),
-      activated_at: new Date().toISOString(),
-    },
-    {
-      card_id: "HB000003",
-      public_token: tokens[2],
-      status: "BLOCKED",
-      programming_verified: true,
-      user_id: null,
-      programmed_at: new Date().toISOString(),
-      blocked_at: new Date().toISOString(),
-    },
-    {
-      card_id: "HB000004",
-      public_token: tokens[3],
-      status: "UNCLAIMED",
-      programming_verified: true,
-      user_id: null,
-      programmed_at: new Date().toISOString(),
-    },
-  ].map((c) => ({
-    ...c,
-    nfc_url: `${appUrl}/c/${c.public_token}`,
-    qr_url: `${appUrl}/c/${c.public_token}`,
-    batch_id: "BATCH-2026-001",
-  }));
-
-  await supabase.from("cards").upsert(cards);
-
-  await supabase.from("leads").delete().eq("cardholder_user_id", clientId);
-  await supabase.from("leads").insert([
-    {
-      cardholder_user_id: clientId,
-      visitor_name: "Ananya Shah",
-      visitor_email: "ananya@example.com",
-      visitor_phone: "+917718090545",
-      visitor_note: "Met at India Blockchain Week — follow up?",
-    },
-    {
-      cardholder_user_id: clientId,
-      visitor_name: "Mehta Equities",
-      visitor_email: "rm@mehtaequities.com",
-      visitor_phone: "+919820012345",
-      visitor_note: "Interested in bulk HighCards for RM team.",
-    },
-  ]);
-
-  console.log("Seed complete.");
-  console.log("Admin:  admin@highbreedsupplies.com / HighbreedAdmin!23");
-  console.log("Client: pranay@highbreedsupplies.com / HighbreedClient!23");
-  console.log("Active card token:", tokens[1]);
-  console.log("Claimable token:", tokens[3]);
+  mkdirSync(".seed", { recursive: true });
+  writeFileSync(".seed/seed.sql", out.join("\n") + "\n");
+  console.log("Wrote .seed/seed.sql");
+  for (const u of users) console.log(`  ${u.role.padEnd(6)} ${u.email} / ${u.password}`);
 }
 
-main().catch((err) => {
-  console.error(err);
+main().catch((e) => {
+  console.error(e);
   process.exit(1);
 });

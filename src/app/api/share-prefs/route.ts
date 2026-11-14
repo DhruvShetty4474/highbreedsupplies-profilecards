@@ -1,47 +1,51 @@
-import { getSessionProfile } from "@/lib/auth";
-import { getSharePrefs, updateSharePrefs } from "@/lib/share-prefs";
+import { eq } from "drizzle-orm";
 import { NextResponse } from "next/server";
 import { z } from "zod";
+import { getDb, schema } from "@/db";
+import { AuthError, requireUser } from "@/lib/auth";
+import { errorResponse } from "@/lib/api";
+import { fetchSharePrefs } from "@/lib/data";
 
-const schema = z.object({
+const bodySchema = z.object({
   user_id: z.string().min(1),
   offline: z.boolean().optional(),
   quick_share: z.enum(["text", "email"]).nullable().optional(),
 });
 
 export async function GET(request: Request) {
-  const session = await getSessionProfile();
-  if (!session) {
-    return NextResponse.json({ error: "Authentication required" }, { status: 401 });
+  try {
+    const session = await requireUser();
+    const userId = new URL(request.url).searchParams.get("user_id") || session.user_id;
+    if (session.role !== "admin" && userId !== session.user_id) throw new AuthError(403);
+    return NextResponse.json(await fetchSharePrefs(userId));
+  } catch (err) {
+    return errorResponse(err);
   }
-
-  const userId = new URL(request.url).searchParams.get("user_id") || session.user_id;
-  if (session.role !== "admin" && userId !== session.user_id) {
-    return NextResponse.json({ error: "Forbidden" }, { status: 403 });
-  }
-
-  return NextResponse.json(getSharePrefs(userId));
 }
 
 export async function PATCH(request: Request) {
-  const session = await getSessionProfile();
-  if (!session) {
-    return NextResponse.json({ error: "Authentication required" }, { status: 401 });
+  try {
+    const session = await requireUser();
+    const parsed = bodySchema.safeParse(await request.json().catch(() => null));
+    if (!parsed.success) {
+      return NextResponse.json({ error: "Invalid payload" }, { status: 400 });
+    }
+    if (session.role !== "admin" && parsed.data.user_id !== session.user_id) {
+      throw new AuthError(403);
+    }
+
+    const patch: Partial<typeof schema.profiles.$inferInsert> = {};
+    if (parsed.data.offline !== undefined) patch.share_offline = parsed.data.offline;
+    if (parsed.data.quick_share !== undefined) patch.quick_share = parsed.data.quick_share;
+    if (Object.keys(patch).length) {
+      await getDb()
+        .update(schema.profiles)
+        .set(patch)
+        .where(eq(schema.profiles.user_id, parsed.data.user_id));
+    }
+
+    return NextResponse.json({ ok: true, prefs: await fetchSharePrefs(parsed.data.user_id) });
+  } catch (err) {
+    return errorResponse(err);
   }
-
-  const parsed = schema.safeParse(await request.json().catch(() => null));
-  if (!parsed.success) {
-    return NextResponse.json({ error: "Invalid payload" }, { status: 400 });
-  }
-
-  if (session.role !== "admin" && parsed.data.user_id !== session.user_id) {
-    return NextResponse.json({ error: "Forbidden" }, { status: 403 });
-  }
-
-  const next = updateSharePrefs(parsed.data.user_id, {
-    offline: parsed.data.offline,
-    quick_share: parsed.data.quick_share,
-  });
-
-  return NextResponse.json({ ok: true, prefs: next });
 }

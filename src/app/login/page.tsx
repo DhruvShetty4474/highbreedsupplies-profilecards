@@ -1,7 +1,7 @@
+import Link from "next/link";
 import { LoginForm } from "@/components/auth/login-form";
 import { HighbreedWordmark } from "@/components/brand/logo";
 import { getSessionProfile } from "@/lib/auth";
-import { isDemoMode } from "@/lib/utils";
 import { redirect } from "next/navigation";
 
 export const metadata = { title: "Sign in" };
@@ -9,12 +9,13 @@ export const metadata = { title: "Sign in" };
 export default async function LoginPage({
   searchParams,
 }: {
-  searchParams: { next?: string };
+  searchParams: Promise<{ next?: string }>;
 }) {
+  const { next } = await searchParams;
   const session = await getSessionProfile();
   if (session) {
     redirect(
-      searchParams.next ||
+      next ||
         (session.role === "admin" ? "/admin" : "/dashboard")
     );
   }
@@ -78,27 +79,15 @@ export default async function LoginPage({
               applied automatically from the account.
             </p>
             <div className="mt-8">
-              <LoginForm nextPath={searchParams.next} />
+              <LoginForm nextPath={next} />
             </div>
           </div>
           <p className="mt-6 text-center text-sm leading-relaxed text-hb-leaf">
             New here?{" "}
-            <a href="/register" className="font-semibold text-hb-action">
+            <Link href="/register" className="font-semibold text-hb-action">
               Register with email
-            </a>
+            </Link>
             {" · "}Admins can also create customer accounts.
-            {isDemoMode() ? (
-              <>
-                <br />
-                <span className="mt-2 inline-block text-xs">
-                  Admin: <strong>admin</strong> / <strong>123123</strong>
-                  {" · "}
-                  Pranay: <strong>pranay</strong> / <strong>pranay123</strong>
-                  {" · "}
-                  Demo: <strong>demo</strong> / <strong>demo123</strong>
-                </span>
-              </>
-            ) : null}
           </p>
         </div>
       </section>

@@ -66,9 +66,9 @@ export function SignupForm({ cardToken }: { cardToken?: string }) {
         name="password"
         type="password"
         label="Password"
-        placeholder="At least 6 characters"
+        placeholder="At least 8 characters"
         autoComplete="new-password"
-        minLength={6}
+        minLength={8}
         required
       />
       {error ? (

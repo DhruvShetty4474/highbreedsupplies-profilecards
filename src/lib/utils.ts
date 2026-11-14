@@ -31,10 +31,6 @@ export function cardNfcUrl(token: string) {
   return appUrl(`/c/${token}`);
 }
 
-export function isDemoMode() {
-  return process.env.NEXT_PUBLIC_DEMO_MODE === "true";
-}
-
 export function initials(name: string) {
   return name
     .split(" ")

@@ -1,54 +1,33 @@
-import { cookies } from "next/headers";
-import {
-  DEMO_REGISTRY_COOKIE,
-  hydrateDemoAccountsFromCookie,
-} from "@/lib/demo-registry";
-import { getDemoProfileById } from "@/lib/demo-store";
-import { createClient } from "@/lib/supabase/server";
-import type { AppRole, Profile } from "@/lib/types";
-import { isDemoMode } from "@/lib/utils";
+import "server-only";
+import { headers } from "next/headers";
+import { getAuth } from "@/lib/auth-server";
+import { fetchProfileById } from "@/lib/data";
+import type { Profile } from "@/lib/types";
 
-/** Stores authenticated demo user_id */
-export const DEMO_SESSION_COOKIE = "hb_demo_uid";
-/** Role mirror for middleware (plain string, no functions) */
-export const DEMO_ROLE_COOKIE = "hb_demo_role";
-
-export async function getSessionProfile(): Promise<Profile | null> {
-  if (isDemoMode()) {
-    const jar = cookies();
-    hydrateDemoAccountsFromCookie(jar.get(DEMO_REGISTRY_COOKIE)?.value);
-    const userId = jar.get(DEMO_SESSION_COOKIE)?.value;
-    if (!userId) return null;
-    return getDemoProfileById(userId);
+export class AuthError extends Error {
+  constructor(
+    public status: 401 | 403,
+    message = status === 401 ? "Authentication required" : "Forbidden"
+  ) {
+    super(message);
   }
-
-  const supabase = createClient();
-  if (!supabase) return null;
-
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-  if (!user) return null;
-
-  const { data } = await supabase
-    .from("profiles")
-    .select("*")
-    .eq("user_id", user.id)
-    .maybeSingle();
-
-  return (data as Profile | null) ?? null;
 }
 
-export async function requireRole(role: AppRole): Promise<Profile> {
+/** Profile of the signed-in user, or null. Role always comes from the DB. */
+export async function getSessionProfile(): Promise<Profile | null> {
+  const session = await getAuth().api.getSession({ headers: await headers() });
+  if (!session) return null;
+  return fetchProfileById(session.user.id);
+}
+
+export async function requireUser(): Promise<Profile> {
   const profile = await getSessionProfile();
-  if (!profile || profile.role !== role) {
-    throw new Error("UNAUTHORIZED");
-  }
+  if (!profile) throw new AuthError(401);
   return profile;
 }
 
-export async function requireAnyAuth(): Promise<Profile> {
-  const profile = await getSessionProfile();
-  if (!profile) throw new Error("UNAUTHORIZED");
+export async function requireAdmin(): Promise<Profile> {
+  const profile = await requireUser();
+  if (profile.role !== "admin") throw new AuthError(403, "Admin access required");
   return profile;
 }

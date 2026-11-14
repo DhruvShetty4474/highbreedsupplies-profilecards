@@ -9,18 +9,19 @@ export const metadata = { title: "Create account" };
 export default async function RegisterPage({
   searchParams,
 }: {
-  searchParams: { card?: string; next?: string };
+  searchParams: Promise<{ card?: string; next?: string }>;
 }) {
+  const sp = await searchParams;
   const session = await getSessionProfile();
   if (session) {
     redirect(
-      searchParams.next ||
+      sp.next ||
         (session.role === "admin" ? "/admin" : "/dashboard")
     );
   }
 
-  const loginHref = searchParams.card
-    ? `/login?next=/c/${searchParams.card}`
+  const loginHref = sp.card
+    ? `/login?next=/c/${sp.card}`
     : "/login";
 
   return (
@@ -80,7 +81,7 @@ export default async function RegisterPage({
               and will see everyone under Customers.
             </p>
             <div className="mt-8">
-              <SignupForm cardToken={searchParams.card} />
+              <SignupForm cardToken={sp.card} />
             </div>
           </div>
           <p className="mt-6 text-center text-sm text-hb-leaf">

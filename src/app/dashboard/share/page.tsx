@@ -1,6 +1,7 @@
 import { SharePagePanel } from "@/components/share/share-page-panel";
 import { getSessionProfile } from "@/lib/auth";
-import { getSharePrefs, publicProfileUrl } from "@/lib/share-prefs";
+import { fetchSharePrefs } from "@/lib/data";
+import { publicProfileUrl } from "@/lib/share-prefs";
 import { appUrl } from "@/lib/utils";
 import { headers } from "next/headers";
 import { redirect } from "next/navigation";
@@ -11,12 +12,12 @@ export default async function DashboardSharePage() {
   const profile = await getSessionProfile();
   if (!profile) redirect("/login?next=/dashboard/share");
 
-  const h = headers();
+  const h = await headers();
   const host = h.get("x-forwarded-host") || h.get("host");
   const proto = h.get("x-forwarded-proto") || "http";
   const origin = host ? `${proto}://${host}` : appUrl();
   const pageUrl = publicProfileUrl(profile.username, origin);
-  const prefs = getSharePrefs(profile.user_id);
+  const prefs = await fetchSharePrefs(profile.user_id);
 
   return (
     <SharePagePanel

@@ -1,26 +1,11 @@
-import { DEMO_ROLE_COOKIE, DEMO_SESSION_COOKIE } from "@/lib/auth";
-import { createClient } from "@/lib/supabase/server";
-import { isDemoMode } from "@/lib/utils";
 import { NextResponse } from "next/server";
+import { getAuth } from "@/lib/auth-server";
 
-export async function POST() {
-  const response = NextResponse.json({ ok: true });
-
-  if (isDemoMode()) {
-    response.cookies.set(DEMO_SESSION_COOKIE, "", {
-      httpOnly: true,
-      path: "/",
-      maxAge: 0,
-    });
-    response.cookies.set(DEMO_ROLE_COOKIE, "", {
-      httpOnly: true,
-      path: "/",
-      maxAge: 0,
-    });
-    return response;
+export async function POST(request: Request) {
+  try {
+    await getAuth().api.signOut({ headers: request.headers });
+  } catch {
+    // No active session — still a successful logout from the client's view.
   }
-
-  const supabase = createClient();
-  if (supabase) await supabase.auth.signOut();
-  return response;
+  return NextResponse.json({ ok: true });
 }

@@ -2,24 +2,28 @@
 
 Linq-class digital business cards with physical NFC/QR HighCards, dual role dashboards, and visitor lead capture.
 
-## Quick start
+## Quick start (local, Cloudflare D1)
 
 ```bash
 npm install
+cp .env.example .env.local          # set BETTER_AUTH_SECRET (openssl rand -base64 32)
+npm run db:migrate:local            # applies ./migrations to a local D1 (.wrangler/)
+npm run db:seed:local               # admin + sample client + 5 cards
 npm run dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) → **login**.
+Open [http://localhost:3000](http://localhost:3000) → **login** with the email
+or username printed by the seed script (defaults below; change them before production).
 
-### Demo credentials (role auto-detected)
+| Login | Password | Role |
+|-------|----------|------|
+| `admin@highbreedsupplies.com` | `HighbreedAdmin!23` | Admin console |
+| `client@example.com` | `HighbreedClient!23` | Customer |
 
-| Login ID | Password | Role |
-|----------|----------|------|
-| `admin` | `123123` | Admin console |
-| `pranay` | `pranay123` | Customer (Highbreed Supplies) |
-| `demo` | `demo123` | Customer (Demo account) |
+Roles are set only on the server: everyone who signs up is a `client`. Admins
+come from the seed script or from `ADMIN_EMAILS` when that email signs up.
 
-Only **admin** can create customers and edit their profiles (`/admin/customers` → Edit profile).
+Schema changes: edit `src/db/schema.ts` → `npm run db:generate` → `npm run db:migrate:local`.
 
 See [docs/SECTIONS.md](docs/SECTIONS.md) for what each screen is for.
 
@@ -41,7 +45,7 @@ POST /api/admin/cards/{card_id}/verify
 
 ## Stack
 
-- Next.js 14 App Router · Tailwind · Supabase · Cloudflare R2 · Vercel ISR
+- Next.js 15 App Router · Tailwind · Cloudflare D1 (Drizzle) · Better Auth · Cloudflare R2 · Cloudflare Workers (OpenNext)
 
 ## Layout
 

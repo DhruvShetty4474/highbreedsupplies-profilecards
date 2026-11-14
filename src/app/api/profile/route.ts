@@ -1,20 +1,10 @@
-import { getSessionProfile } from "@/lib/auth";
-import {
-  DEMO_REGISTRY_COOKIE,
-  attachDemoRegistryCookie,
-  hydrateDemoAccountsFromCookie,
-} from "@/lib/demo-registry";
-import { updateDemoProfile } from "@/lib/demo-store";
-import { createClient } from "@/lib/supabase/server";
-import type {
-  ContentBlock,
-  Profile,
-  ProfileLayout,
-  SocialLink,
-} from "@/lib/types";
-import { isDemoMode } from "@/lib/utils";
-import { cookies } from "next/headers";
+import { eq } from "drizzle-orm";
 import { NextResponse } from "next/server";
+import { getDb, schema as db } from "@/db";
+import { errorResponse } from "@/lib/api";
+import { AuthError, requireUser } from "@/lib/auth";
+import { fetchProfileById } from "@/lib/data";
+import type { ContentBlock, ProfileLayout, SocialLink } from "@/lib/types";
 import { z } from "zod";
 
 const socialSchema = z.object({
@@ -69,68 +59,56 @@ const schema = z.object({
 });
 
 export async function PATCH(request: Request) {
-  const session = await getSessionProfile();
-  if (!session) {
-    return NextResponse.json({ error: "Authentication required" }, { status: 401 });
-  }
+  try {
+    const session = await requireUser();
 
-  const parsed = schema.safeParse(await request.json().catch(() => null));
-  if (!parsed.success) {
-    return NextResponse.json({ error: "Invalid profile payload" }, { status: 400 });
-  }
+    const parsed = schema.safeParse(await request.json().catch(() => null));
+    if (!parsed.success) {
+      return NextResponse.json({ error: "Invalid profile payload" }, { status: 400 });
+    }
 
-  const targetUserId =
-    session.role === "admin" && parsed.data.user_id
-      ? parsed.data.user_id
-      : session.user_id;
+    if (
+      session.role !== "admin" &&
+      parsed.data.user_id &&
+      parsed.data.user_id !== session.user_id
+    ) {
+      throw new AuthError(403);
+    }
+    const targetUserId =
+      session.role === "admin" && parsed.data.user_id
+        ? parsed.data.user_id
+        : session.user_id;
 
-  if (
-    session.role !== "admin" &&
-    parsed.data.user_id &&
-    parsed.data.user_id !== session.user_id
-  ) {
-    return NextResponse.json({ error: "Forbidden" }, { status: 403 });
-  }
+    // Explicit whitelist — role, username, stats etc. can never be set here.
+    const d = parsed.data;
+    const updates: Partial<typeof db.profiles.$inferInsert> = {
+      updated_at: new Date().toISOString(),
+    };
+    if (d.full_name !== undefined) updates.full_name = d.full_name;
+    if (d.designation !== undefined) updates.designation = d.designation;
+    if (d.location !== undefined) updates.location = d.location;
+    if (d.bio !== undefined) updates.bio = d.bio;
+    if (d.phone !== undefined) updates.phone = d.phone || null;
+    if (d.email !== undefined) updates.email = d.email || null;
+    if (d.avatar_url !== undefined) updates.avatar_url = d.avatar_url || null;
+    if (d.banner_url !== undefined) updates.banner_url = d.banner_url || null;
+    if (d.video_url !== undefined) updates.video_url = d.video_url || null;
+    if (d.social_links !== undefined)
+      updates.social_links = d.social_links as SocialLink[];
+    if (d.content_blocks !== undefined)
+      updates.content_blocks = d.content_blocks as ContentBlock[];
+    if (d.layout !== undefined) updates.layout = d.layout as ProfileLayout;
 
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars -- strip user_id from patch body
-  const { user_id, ...rest } = parsed.data;
-  const updates: Partial<Profile> = {
-    ...rest,
-    email: rest.email || null,
-    avatar_url: rest.avatar_url || null,
-    banner_url: rest.banner_url || null,
-    video_url: rest.video_url || null,
-    social_links: rest.social_links as SocialLink[] | undefined,
-    content_blocks: rest.content_blocks as ContentBlock[] | undefined,
-    layout: rest.layout as ProfileLayout | undefined,
-  };
-
-  if (isDemoMode()) {
-    hydrateDemoAccountsFromCookie(cookies().get(DEMO_REGISTRY_COOKIE)?.value);
-    const next = updateDemoProfile(targetUserId, updates);
-    if (!next) {
+    const res = await getDb()
+      .update(db.profiles)
+      .set(updates)
+      .where(eq(db.profiles.user_id, targetUserId));
+    if (res.meta.changes !== 1) {
       return NextResponse.json({ error: "Profile not found" }, { status: 404 });
     }
-    const response = NextResponse.json({ ok: true, profile: next });
-    attachDemoRegistryCookie(response);
-    return response;
+
+    return NextResponse.json({ ok: true, profile: await fetchProfileById(targetUserId) });
+  } catch (err) {
+    return errorResponse(err);
   }
-
-  const supabase = createClient();
-  if (!supabase) {
-    return NextResponse.json({ error: "Database unavailable" }, { status: 503 });
-  }
-
-  const { data, error } = await supabase
-    .from("profiles")
-    .update(updates)
-    .eq("user_id", targetUserId)
-    .select("*")
-    .single();
-
-  if (error) {
-    return NextResponse.json({ error: error.message }, { status: 500 });
-  }
-
-  return NextResponse.json({ ok: true, profile: data });
 }

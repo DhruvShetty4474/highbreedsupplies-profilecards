@@ -1,17 +1,16 @@
 import { ProfileWorkbench } from "@/components/dashboard/profile-workbench";
-import { getDemoProfileById } from "@/lib/demo-store";
-import { appUrl, isDemoMode } from "@/lib/utils";
+import { fetchProfileById } from "@/lib/data";
+import { appUrl } from "@/lib/utils";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 
 export const metadata = { title: "Edit customer" };
 
-type Props = { params: { userId: string } };
+type Props = { params: Promise<{ userId: string }> };
 
-export default function AdminEditCustomerPage({ params }: Props) {
-  if (!isDemoMode()) notFound();
-
-  const profile = getDemoProfileById(params.userId);
+export default async function AdminEditCustomerPage({ params }: Props) {
+  const { userId } = await params;
+  const profile = await fetchProfileById(userId);
   if (!profile || profile.role !== "client") notFound();
 
   return (

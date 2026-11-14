@@ -3,6 +3,11 @@
 @tailwind utilities;
 
 :root {
+  --font-display: "Fraunces Variable";
+  --font-sans: "Manrope Variable";
+}
+
+:root {
   --background: #fffbf3;
   --foreground: #1a160f;
   --hb-primary: #d4a017;

@@ -47,6 +47,9 @@ const items: SidebarItem[] = [
   },
 ];
 
+// Session + D1 reads: never prerender.
+export const dynamic = "force-dynamic";
+
 export default async function AdminLayout({
   children,
 }: {
