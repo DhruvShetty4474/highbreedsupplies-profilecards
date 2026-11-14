@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { z } from "zod";
 import { getDb, schema } from "@/db";
 import { fetchCardById, fetchProfileById } from "@/lib/data";
+import { clientIp, hitRateLimit, LIMITS } from "@/lib/rate-limit";
 
 const bodySchema = z.object({
   cardholder_user_id: z.string().min(1),
@@ -17,6 +18,20 @@ export async function POST(request: Request) {
   const parsed = bodySchema.safeParse(await request.json().catch(() => null));
   if (!parsed.success) {
     return NextResponse.json({ error: "Invalid lead payload" }, { status: 400 });
+  }
+
+  // Public form: cap submissions per visitor IP to stop lead spam.
+  const limit = await hitRateLimit(
+    getDb(),
+    `lead:ip:${clientIp(request.headers)}`,
+    LIMITS.leadPerIp.max,
+    LIMITS.leadPerIp.window
+  );
+  if (!limit.ok) {
+    return NextResponse.json(
+      { error: "Too many submissions. Please try again later." },
+      { status: 429, headers: { "Retry-After": String(limit.retryAfter) } }
+    );
   }
 
   if (!(await fetchProfileById(parsed.data.cardholder_user_id))) {

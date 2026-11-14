@@ -46,4 +46,6 @@ export const LIMITS = {
   loginPerIp: { max: 10, window: 60 },
   loginPerAccount: { max: 5, window: 300 },
   registerPerIp: { max: 5, window: 3600 },
+  leadPerIp: { max: 5, window: 3600 },
+  statPerVisitor: { max: 3, window: 3600 },
 } as const;

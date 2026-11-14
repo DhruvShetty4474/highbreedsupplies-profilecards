@@ -2,7 +2,9 @@ import { NextResponse } from "next/server";
 import { z } from "zod";
 import { errorResponse } from "@/lib/api";
 import { requireUser } from "@/lib/auth";
+import { getDb } from "@/db";
 import { bumpStat, fetchStats } from "@/lib/data";
+import { clientIp, hitRateLimit, LIMITS } from "@/lib/rate-limit";
 
 const eventSchema = z.object({
   user_id: z.string().min(1),
@@ -15,7 +17,16 @@ export async function POST(request: Request) {
   if (!parsed.success) {
     return NextResponse.json({ error: "Invalid event" }, { status: 400 });
   }
-  await bumpStat(parsed.data.user_id, parsed.data.event);
+  // Count each visitor/event/profile at most a few times per hour, so
+  // reach/share numbers can't be inflated by a loop. Excess hits are
+  // accepted silently (no signal to the caller) but not counted.
+  const limit = await hitRateLimit(
+    getDb(),
+    `stat:${clientIp(request.headers)}:${parsed.data.user_id}:${parsed.data.event}`,
+    LIMITS.statPerVisitor.max,
+    LIMITS.statPerVisitor.window
+  );
+  if (limit.ok) await bumpStat(parsed.data.user_id, parsed.data.event);
   return NextResponse.json({ ok: true });
 }
 

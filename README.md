@@ -171,7 +171,7 @@ Before announcing:
 ## Tests
 
 ```bash
-npm test            # vitest: 46 tests, in-memory SQLite with the real D1 migrations
+npm test            # vitest: 48 tests, in-memory SQLite with the real D1 migrations
 npm run typecheck && npm run lint && npm run build
 ```
 
