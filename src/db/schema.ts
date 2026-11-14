@@ -239,3 +239,27 @@ export const cardProgrammingLogs = sqliteTable("card_programming_logs", {
     .default(sql`'{}'`),
   created_at: text("created_at").notNull().default(nowIso),
 });
+
+/**
+ * Every object a user stores in R2. `size` counts toward
+ * MEDIA_QUOTA_MB_PER_USER (pending uploads reserve their declared size).
+ */
+export const media = sqliteTable(
+  "media",
+  {
+    id: text("id").primaryKey(),
+    user_id: text("user_id")
+      .notNull()
+      .references(() => user.id, { onDelete: "cascade" }),
+    key: text("key").notNull().unique(),
+    url: text("url").notNull().unique(),
+    kind: text("kind", { enum: ["avatar", "banner", "image", "video"] }).notNull(),
+    content_type: text("content_type").notNull(),
+    size: integer("size").notNull(),
+    status: text("status", { enum: ["pending", "ready"] })
+      .notNull()
+      .default("pending"),
+    created_at: text("created_at").notNull().default(nowIso),
+  },
+  (t) => [index("idx_media_user").on(t.user_id, t.status)]
+);

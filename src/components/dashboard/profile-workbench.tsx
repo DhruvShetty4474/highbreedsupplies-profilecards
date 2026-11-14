@@ -1,6 +1,7 @@
 "use client";
 
 import { MediaPicker } from "@/components/dashboard/media-picker";
+import { BlockUploadButton } from "@/components/dashboard/block-upload-button";
 import { PublicProfile } from "@/components/profile/public-profile";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -286,6 +287,7 @@ export function ProfileWorkbench({
                 label="Profile background image"
                 hint="Wide cover photo (16:7). Upload or paste a URL."
                 kind="banner"
+                forUserId={adminUserId}
                 value={draft.banner_url}
                 onChange={(url) => setDraft({ ...draft, banner_url: url })}
               />
@@ -293,6 +295,7 @@ export function ProfileWorkbench({
                 label="Profile photo"
                 hint="Square works best."
                 kind="avatar"
+                forUserId={adminUserId}
                 value={draft.avatar_url}
                 onChange={(url) => setDraft({ ...draft, avatar_url: url })}
               />
@@ -332,11 +335,9 @@ export function ProfileWorkbench({
                           type,
                           title: label,
                           body: type === "text" ? "" : undefined,
-                          url: type !== "gallery" && type !== "text" ? "https://" : undefined,
+                          url: type !== "gallery" && type !== "text" ? "" : undefined,
                           urls:
-                            type === "gallery"
-                              ? ["https://", "https://"]
-                              : undefined,
+                            type === "gallery" ? [] : undefined,
                           sort_order: prev.length,
                           visible: true,
                         },
@@ -425,6 +426,25 @@ export function ProfileWorkbench({
                       />
                     ) : null}
                     {block.type === "gallery" ? (
+                      <BlockUploadButton
+                        kind="image"
+                        multiple
+                        forUserId={adminUserId}
+                        label="Upload images"
+                        onUploaded={(urls) =>
+                          updateBlock(index, { urls: [...(block.urls ?? []), ...urls] })
+                        }
+                      />
+                    ) : null}
+                    {block.type === "image" || block.type === "video" ? (
+                      <BlockUploadButton
+                        kind={block.type}
+                        forUserId={adminUserId}
+                        label={block.type === "video" ? "Upload MP4/WebM" : "Upload image"}
+                        onUploaded={([url]) => updateBlock(index, { url })}
+                      />
+                    ) : null}
+                    {block.type === "gallery" ? (
                       <Textarea
                         label="Image URLs (one per line)"
                         value={(block.urls ?? []).join("\n")}
@@ -440,7 +460,11 @@ export function ProfileWorkbench({
                     ) : block.type !== "text" ? (
                       <Input
                         label={
-                          block.type === "file" ? "File URL" : "Media URL"
+                          block.type === "file"
+                            ? "File URL"
+                            : block.type === "video"
+                              ? "Or YouTube link"
+                              : "Or image URL"
                         }
                         value={block.url ?? ""}
                         onChange={(e) =>

@@ -1,56 +1,19 @@
-import {
-  PutObjectCommand,
-  S3Client,
-  GetObjectCommand,
-} from "@aws-sdk/client-s3";
-import { getSignedUrl } from "@aws-sdk/s3-request-presigner";
+import { AwsClient } from "aws4fetch";
 
-function getR2Client() {
-  const accountId = process.env.R2_ACCOUNT_ID;
-  const accessKeyId = process.env.R2_ACCESS_KEY_ID;
-  const secretAccessKey = process.env.R2_SECRET_ACCESS_KEY;
-
-  if (!accountId || !accessKeyId || !secretAccessKey) {
-    return null;
-  }
-
-  return new S3Client({
-    region: "auto",
-    endpoint: `https://${accountId}.r2.cloudflarestorage.com`,
-    credentials: { accessKeyId, secretAccessKey },
-  });
+/**
+ * Minimal object-store interface used by the media code. Production uses
+ * R2's S3 API (presigned browser uploads need it anyway); tests use an
+ * in-memory fake.
+ */
+export interface MediaStore {
+  presignPut(key: string, contentType: string, expiresSeconds?: number): Promise<string>;
+  head(key: string): Promise<{ size: number; contentType: string | null } | null>;
+  delete(key: string): Promise<void>;
+  publicUrl(key: string): string;
 }
 
-export async function uploadToR2(params: {
-  key: string;
-  body: Buffer | Uint8Array;
-  contentType: string;
-}) {
-  const client = getR2Client();
-  const bucket = process.env.R2_BUCKET_NAME;
-  if (!client || !bucket) {
-    throw new Error("R2 is not configured. Set R2_* env vars.");
-  }
-
-  await client.send(
-    new PutObjectCommand({
-      Bucket: bucket,
-      Key: params.key,
-      Body: params.body,
-      ContentType: params.contentType,
-    })
-  );
-
-  const publicBase = process.env.R2_PUBLIC_URL?.replace(/\/$/, "");
-  if (publicBase) {
-    return `${publicBase}/${params.key}`;
-  }
-
-  return await getSignedUrl(
-    client,
-    new GetObjectCommand({ Bucket: bucket, Key: params.key }),
-    { expiresIn: 60 * 60 * 24 * 7 }
-  );
+export function mediaPublicBase() {
+  return (process.env.R2_PUBLIC_URL || "https://media.highbreedsupplies.com").replace(/\/$/, "");
 }
 
 export function isR2Configured() {
@@ -60,4 +23,54 @@ export function isR2Configured() {
       process.env.R2_SECRET_ACCESS_KEY &&
       process.env.R2_BUCKET_NAME
   );
+}
+
+let override: MediaStore | null = null;
+export function setMediaStoreForTesting(store: MediaStore | null) {
+  override = store;
+}
+
+/** R2 via its S3-compatible endpoint, or null when R2 env vars are missing. */
+export function getMediaStore(): MediaStore | null {
+  if (override) return override;
+  if (!isR2Configured()) return null;
+
+  const client = new AwsClient({
+    accessKeyId: process.env.R2_ACCESS_KEY_ID!,
+    secretAccessKey: process.env.R2_SECRET_ACCESS_KEY!,
+    service: "s3",
+    region: "auto",
+  });
+  const endpoint = `https://${process.env.R2_ACCOUNT_ID}.r2.cloudflarestorage.com/${process.env.R2_BUCKET_NAME}`;
+  const objectUrl = (key: string) =>
+    `${endpoint}/${key.split("/").map(encodeURIComponent).join("/")}`;
+
+  return {
+    async presignPut(key, contentType, expiresSeconds = 600) {
+      const url = new URL(objectUrl(key));
+      url.searchParams.set("X-Amz-Expires", String(expiresSeconds));
+      // Content-Type is a signed header: the browser must send exactly it.
+      const signed = await client.sign(
+        new Request(url, { method: "PUT", headers: { "Content-Type": contentType } }),
+        { aws: { signQuery: true, allHeaders: true } }
+      );
+      return signed.url;
+    },
+    async head(key) {
+      const res = await client.fetch(objectUrl(key), { method: "HEAD" });
+      if (res.status === 404) return null;
+      if (!res.ok) throw new Error(`R2 HEAD failed: ${res.status}`);
+      return {
+        size: Number(res.headers.get("content-length") ?? 0),
+        contentType: res.headers.get("content-type"),
+      };
+    },
+    async delete(key) {
+      const res = await client.fetch(objectUrl(key), { method: "DELETE" });
+      if (!res.ok && res.status !== 404) throw new Error(`R2 DELETE failed: ${res.status}`);
+    },
+    publicUrl(key) {
+      return `${mediaPublicBase()}/${key}`;
+    },
+  };
 }

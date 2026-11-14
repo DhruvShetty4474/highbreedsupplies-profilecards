@@ -1,5 +1,6 @@
 "use client";
 
+import { VideoEmbed } from "@/components/profile/video-embed";
 import { HighbreedMark } from "@/components/brand/logo";
 import { LeadCapture } from "@/components/profile/lead-capture";
 import { socialVisual } from "@/components/profile/social-styles";
@@ -101,17 +102,7 @@ function MediaBlocks({
               </div>
             ) : null}
             {block.type === "video" && block.url ? (
-              <video
-                className="aspect-video w-full rounded-xl object-cover"
-                controls={!preview}
-                muted={preview}
-                playsInline
-                loop
-                autoPlay={preview}
-                preload="metadata"
-              >
-                <source src={block.url} />
-              </video>
+              <VideoEmbed url={block.url} title={block.title} preview={preview} />
             ) : null}
             {block.type === "file" && block.url ? (
               <a

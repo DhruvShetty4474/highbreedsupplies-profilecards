@@ -2,6 +2,7 @@
 
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { uploadMedia } from "@/lib/upload-client";
 import { ImagePlus, Loader2, Trash2 } from "lucide-react";
 import { useRef, useState } from "react";
 
@@ -10,7 +11,9 @@ type Props = {
   hint?: string;
   value: string | null | undefined;
   onChange: (url: string | null) => void;
-  kind?: "avatar" | "banner" | "media";
+  kind?: "avatar" | "banner";
+  /** Admin editing a customer: upload into the customer's storage. */
+  forUserId?: string;
 };
 
 export function MediaPicker({
@@ -18,7 +21,8 @@ export function MediaPicker({
   hint,
   value,
   onChange,
-  kind = "media",
+  kind = "avatar",
+  forUserId,
 }: Props) {
   const inputRef = useRef<HTMLInputElement>(null);
   const [pending, setPending] = useState(false);
@@ -28,18 +32,14 @@ export function MediaPicker({
     if (!file) return;
     setPending(true);
     setError(null);
-    const form = new FormData();
-    form.set("file", file);
-    form.set("kind", kind);
-    const res = await fetch("/api/upload", { method: "POST", body: form });
-    setPending(false);
-    if (!res.ok) {
-      const body = await res.json().catch(() => ({}));
-      setError(body.error || "Upload failed");
-      return;
+    try {
+      onChange(await uploadMedia(file, kind, forUserId));
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Upload failed");
+    } finally {
+      setPending(false);
+      if (inputRef.current) inputRef.current.value = "";
     }
-    const body = await res.json();
-    onChange(body.url);
   }
 
   return (
@@ -82,7 +82,7 @@ export function MediaPicker({
         <input
           ref={inputRef}
           type="file"
-          accept="image/*"
+          accept="image/jpeg,image/png,image/webp,image/gif"
           className="hidden"
           onChange={(e) => onFile(e.target.files?.[0])}
         />
@@ -104,7 +104,7 @@ export function MediaPicker({
 
       <Input
         label="Or paste image URL"
-        value={value?.startsWith("data:") ? "" : value ?? ""}
+        value={value ?? ""}
         placeholder="https://…"
         onChange={(e) => onChange(e.target.value || null)}
       />

@@ -4,6 +4,14 @@ import { getDb, schema as db } from "@/db";
 import { errorResponse } from "@/lib/api";
 import { AuthError, requireUser } from "@/lib/auth";
 import { fetchProfileById } from "@/lib/data";
+import {
+  deleteDereferenced,
+  MediaError,
+  normalizeImageUrl,
+  normalizeVideoUrl,
+  referencedUrls,
+} from "@/lib/media";
+import { getMediaStore, mediaPublicBase } from "@/lib/r2";
 import type { ContentBlock, ProfileLayout, SocialLink } from "@/lib/types";
 import { z } from "zod";
 
@@ -90,25 +98,59 @@ export async function PATCH(request: Request) {
     if (d.bio !== undefined) updates.bio = d.bio;
     if (d.phone !== undefined) updates.phone = d.phone || null;
     if (d.email !== undefined) updates.email = d.email || null;
-    if (d.avatar_url !== undefined) updates.avatar_url = d.avatar_url || null;
-    if (d.banner_url !== undefined) updates.banner_url = d.banner_url || null;
-    if (d.video_url !== undefined) updates.video_url = d.video_url || null;
+    const base = mediaPublicBase();
+    const video = (u: string | null | undefined) =>
+      u?.trim() && u.trim() !== "https://" ? normalizeVideoUrl(u, base) : null;
+
+    if (d.avatar_url !== undefined) updates.avatar_url = normalizeImageUrl(d.avatar_url);
+    if (d.banner_url !== undefined) updates.banner_url = normalizeImageUrl(d.banner_url);
+    if (d.video_url !== undefined) updates.video_url = video(d.video_url);
     if (d.social_links !== undefined)
       updates.social_links = d.social_links as SocialLink[];
-    if (d.content_blocks !== undefined)
-      updates.content_blocks = d.content_blocks as ContentBlock[];
+    if (d.content_blocks !== undefined) {
+      updates.content_blocks = (d.content_blocks as ContentBlock[]).map((b) => {
+        if (b.type === "video") return { ...b, url: video(b.url) ?? undefined };
+        if (b.type === "gallery")
+          return {
+            ...b,
+            urls: (b.urls ?? [])
+              .map((u) => normalizeImageUrl(u))
+              .filter((u): u is string => Boolean(u)),
+          };
+        if (b.type === "image" || b.type === "file")
+          return { ...b, url: normalizeImageUrl(b.url) ?? undefined };
+        return b;
+      });
+    }
     if (d.layout !== undefined) updates.layout = d.layout as ProfileLayout;
 
-    const res = await getDb()
+    const before = await fetchProfileById(targetUserId);
+    if (!before) {
+      return NextResponse.json({ error: "Profile not found" }, { status: 404 });
+    }
+    await getDb()
       .update(db.profiles)
       .set(updates)
       .where(eq(db.profiles.user_id, targetUserId));
-    if (res.meta.changes !== 1) {
-      return NextResponse.json({ error: "Profile not found" }, { status: 404 });
+    const after = (await fetchProfileById(targetUserId))!;
+
+    // Removed or replaced uploads are deleted from R2 straight away.
+    const store = getMediaStore();
+    if (store) {
+      await deleteDereferenced(
+        getDb(),
+        store,
+        targetUserId,
+        referencedUrls(before),
+        referencedUrls(after)
+      );
     }
 
-    return NextResponse.json({ ok: true, profile: await fetchProfileById(targetUserId) });
+    return NextResponse.json({ ok: true, profile: after });
   } catch (err) {
+    if (err instanceof MediaError) {
+      return NextResponse.json({ error: err.message }, { status: err.status });
+    }
     return errorResponse(err);
   }
 }
