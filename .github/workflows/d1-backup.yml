@@ -1,0 +1,37 @@
+name: Nightly D1 backup
+
+# Exports the production D1 database to SQL and stores it in a private R2
+# bucket. Required repo secrets: CLOUDFLARE_API_TOKEN (D1 Edit + R2 Edit),
+# CLOUDFLARE_ACCOUNT_ID. Restore: see README → "Backups".
+on:
+  schedule:
+    - cron: "30 20 * * *" # 02:00 IST
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  backup:
+    runs-on: ubuntu-latest
+    env:
+      CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+      CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+      BUCKET: highbreed-backups
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - name: Export D1
+        run: |
+          STAMP=$(date -u +%Y-%m-%dT%H%M%SZ)
+          echo "STAMP=$STAMP" >> "$GITHUB_ENV"
+          npx wrangler d1 export highbreed --remote --output="highbreed-$STAMP.sql"
+          gzip "highbreed-$STAMP.sql"
+      - name: Upload to R2
+        run: |
+          npx wrangler r2 object put "$BUCKET/d1/highbreed-$STAMP.sql.gz" \
+            --file "highbreed-$STAMP.sql.gz" --remote

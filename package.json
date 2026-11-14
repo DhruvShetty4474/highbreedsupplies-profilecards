@@ -12,7 +12,11 @@
     "db:migrate:local": "wrangler d1 migrations apply highbreed --local",
     "db:migrate:remote": "wrangler d1 migrations apply highbreed --remote",
     "db:seed:local": "tsx scripts/seed.ts && wrangler d1 execute highbreed --local --file=.seed/seed.sql",
-    "admin:grant": "node scripts/grant-admin.mjs"
+    "admin:grant": "node scripts/grant-admin.mjs",
+    "cf:build": "opennextjs-cloudflare build",
+    "preview": "opennextjs-cloudflare build && opennextjs-cloudflare preview",
+    "deploy": "opennextjs-cloudflare build && opennextjs-cloudflare deploy",
+    "db:backup": "wrangler d1 export highbreed --remote --output=.seed/backup.sql"
   },
   "dependencies": {
     "@fontsource-variable/fraunces": "^5.3.0",

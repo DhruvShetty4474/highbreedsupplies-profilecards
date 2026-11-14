@@ -12,7 +12,7 @@ export const metadata: Metadata = {
   description:
     "Premium NFC business cards and mobile-first digital profiles. Claim, customize, and capture leads with HIGHBREED.",
   metadataBase: new URL(
-    process.env.NEXT_PUBLIC_APP_URL || "https://highbreedsupplies.com"
+    process.env.APP_URL || "https://highbreedsupplies.com"
   ),
 };
 

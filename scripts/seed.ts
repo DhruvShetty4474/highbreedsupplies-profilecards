@@ -12,7 +12,7 @@ import { randomUUID } from "node:crypto";
 import { hashPassword } from "better-auth/crypto";
 import { customAlphabet } from "nanoid";
 
-const appUrl = (process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000").replace(/\/$/, "");
+const appUrl = (process.env.APP_URL || "http://localhost:3000").replace(/\/$/, "");
 const token = customAlphabet(
   "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789",
   24

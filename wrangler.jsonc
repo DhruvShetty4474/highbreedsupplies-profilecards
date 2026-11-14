@@ -8,16 +8,30 @@
     "directory": ".open-next/assets",
     "binding": "ASSETS"
   },
+  // Serves the Worker on the apex + www. Both zones must be on Cloudflare
+  // (see README → Deploy). Wrangler creates the DNS records + certificates.
+  "routes": [
+    { "pattern": "highbreedsupplies.com", "custom_domain": true },
+    { "pattern": "www.highbreedsupplies.com", "custom_domain": true }
+  ],
   "d1_databases": [
     {
       "binding": "DB",
       "database_name": "highbreed",
-      // Replace with the id printed by `wrangler d1 create highbreed`
+      // Replace with the id printed by `npx wrangler d1 create highbreed`
       "database_id": "00000000-0000-0000-0000-000000000000",
       "migrations_dir": "migrations"
     }
   ],
+  "observability": { "enabled": true },
+  // Non-secret settings. Secrets (BETTER_AUTH_SECRET, R2 keys, RESEND_API_KEY,
+  // ...) are set with `npx wrangler secret put NAME` — never commit them.
   "vars": {
-    "NEXT_PUBLIC_APP_URL": "https://highbreedsupplies.com"
+    "APP_URL": "https://highbreedsupplies.com",
+    "R2_BUCKET_NAME": "highbreed-media",
+    "R2_PUBLIC_URL": "https://media.highbreedsupplies.com",
+    "MEDIA_MAX_IMAGE_MB": "5",
+    "MEDIA_MAX_VIDEO_MB": "50",
+    "MEDIA_QUOTA_MB_PER_USER": "100"
   }
 }
