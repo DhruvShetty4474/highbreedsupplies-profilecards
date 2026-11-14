@@ -2,6 +2,7 @@ import "server-only";
 import { eq } from "drizzle-orm";
 import { getDb, schema } from "@/db";
 import { getAuth } from "@/lib/auth-server";
+import { RESERVED_USERNAMES } from "@/lib/utils";
 
 export class AccountError extends Error {
   constructor(public status: number, message: string) {
@@ -19,6 +20,9 @@ export type NewAccount = {
 };
 
 async function assertUsernameFree(username: string) {
+  if (RESERVED_USERNAMES.has(username)) {
+    throw new AccountError(409, "That username is reserved");
+  }
   const taken = await getDb()
     .select({ u: schema.profiles.user_id })
     .from(schema.profiles)

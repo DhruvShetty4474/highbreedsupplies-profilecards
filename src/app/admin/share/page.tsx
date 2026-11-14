@@ -1,3 +1,4 @@
+import { requireAdminPage } from "@/lib/auth";
 import { fetchClientProfiles, fetchStats } from "@/lib/data";
 import { avatarHue, initials } from "@/lib/utils";
 import { ChevronRight, Share2 } from "lucide-react";
@@ -6,6 +7,7 @@ import Link from "next/link";
 export const metadata = { title: "Share pages" };
 
 export default async function AdminSharePagesPage() {
+  await requireAdminPage();
   const customers = await Promise.all(
     (await fetchClientProfiles()).map(async (p) => ({
       user_id: p.user_id,

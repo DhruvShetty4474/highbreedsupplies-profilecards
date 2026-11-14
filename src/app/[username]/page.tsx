@@ -1,21 +1,11 @@
 import { PublicProfile } from "@/components/profile/public-profile";
 import { fetchProfileByUsername } from "@/lib/data";
+import { RESERVED_USERNAMES as RESERVED } from "@/lib/utils";
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 
-export const revalidate = 60;
+export const dynamic = "force-dynamic";
 
-const RESERVED = new Set([
-  "admin",
-  "dashboard",
-  "login",
-  "signup",
-  "register",
-  "api",
-  "c",
-  "auth",
-  "settings",
-]);
 
 type Props = { params: Promise<{ username: string }> };
 

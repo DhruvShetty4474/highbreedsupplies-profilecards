@@ -1,3 +1,4 @@
+import { requireAdminPage } from "@/lib/auth";
 import { fetchClientProfiles, fetchStats } from "@/lib/data";
 import { CreateCustomerForm } from "@/components/admin/create-customer-form";
 import Link from "next/link";
@@ -5,6 +6,7 @@ import Link from "next/link";
 export const metadata = { title: "Customers" };
 
 export default async function AdminCustomersPage() {
+  await requireAdminPage();
   const customers = await Promise.all(
     (await fetchClientProfiles()).map(async (p) => ({
       user_id: p.user_id,

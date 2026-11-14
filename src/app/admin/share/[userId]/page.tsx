@@ -1,3 +1,4 @@
+import { requireAdminPage } from "@/lib/auth";
 import { SharePagePanel } from "@/components/share/share-page-panel";
 import { fetchProfileById } from "@/lib/data";
 import { fetchSharePrefs } from "@/lib/data";
@@ -12,6 +13,7 @@ export const metadata = { title: "Share page" };
 type Props = { params: Promise<{ userId: string }> };
 
 export default async function AdminShareCustomerPage({ params }: Props) {
+  await requireAdminPage();
   const { userId } = await params;
   const profile = await fetchProfileById(userId);
   if (!profile || profile.role !== "client") notFound();

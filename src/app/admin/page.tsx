@@ -1,3 +1,4 @@
+import { requireAdminPage } from "@/lib/auth";
 import { AdminQuickActions } from "@/components/admin/quick-actions";
 import { fetchAdminMetrics, fetchClientProfiles, fetchStats } from "@/lib/data";
 import { ChevronRight } from "lucide-react";
@@ -6,6 +7,7 @@ import Link from "next/link";
 export const metadata = { title: "Admin Overview" };
 
 export default async function AdminOverviewPage() {
+  await requireAdminPage();
   const metrics = await fetchAdminMetrics();
   const customers = await Promise.all(
     (await fetchClientProfiles()).map(async (p) => ({

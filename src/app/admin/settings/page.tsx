@@ -1,11 +1,11 @@
+import { requireAdminPage } from "@/lib/auth";
 import { SignOutButton } from "@/components/auth/sign-out-button";
-import { getSessionProfile } from "@/lib/auth";
 import { redirect } from "next/navigation";
 
 export const metadata = { title: "Admin Settings" };
 
 export default async function AdminSettingsPage() {
-  const profile = await getSessionProfile();
+  const profile = await requireAdminPage();
   if (!profile) redirect("/login");
 
   return (

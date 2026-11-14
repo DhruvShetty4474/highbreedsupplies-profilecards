@@ -1,3 +1,4 @@
+import { requireAdminPage } from "@/lib/auth";
 import { ProfileWorkbench } from "@/components/dashboard/profile-workbench";
 import { fetchProfileById } from "@/lib/data";
 import { appUrl } from "@/lib/utils";
@@ -9,6 +10,7 @@ export const metadata = { title: "Edit customer" };
 type Props = { params: Promise<{ userId: string }> };
 
 export default async function AdminEditCustomerPage({ params }: Props) {
+  await requireAdminPage();
   const { userId } = await params;
   const profile = await fetchProfileById(userId);
   if (!profile || profile.role !== "client") notFound();

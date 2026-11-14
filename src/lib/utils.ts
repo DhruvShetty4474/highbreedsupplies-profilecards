@@ -48,3 +48,10 @@ export function avatarHue(seed: string) {
   const hues = [160, 175, 145, 200, 30, 280, 210];
   return hues[Math.abs(hash) % hues.length];
 }
+
+/** Usernames that would collide with app routes (/[username]). */
+export const RESERVED_USERNAMES = new Set([
+  "admin", "dashboard", "login", "logout", "signup", "register", "api", "c",
+  "auth", "settings", "forgot-password", "reset-password", "verify-email",
+  "account", "highbreed", "support", "_next",
+]);

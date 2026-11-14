@@ -4,7 +4,7 @@ import { drizzleAdapter } from "better-auth/adapters/drizzle";
 import { nextCookies } from "better-auth/next-js";
 import { eq } from "drizzle-orm";
 import { getDb, schema, type DB } from "@/db";
-import { appUrl } from "@/lib/utils";
+import { appUrl, RESERVED_USERNAMES } from "@/lib/utils";
 
 /** Emails listed in ADMIN_EMAILS (comma-separated) become admins at signup. */
 export function isAdminEmail(email: string) {
@@ -26,7 +26,7 @@ export async function uniqueUsername(db: DB, seed: string) {
       .from(schema.profiles)
       .where(eq(schema.profiles.username, candidate))
       .get();
-    if (!taken) return candidate;
+    if (!taken && !RESERVED_USERNAMES.has(candidate)) return candidate;
   }
   return `${base}${crypto.randomUUID().slice(0, 8)}`;
 }

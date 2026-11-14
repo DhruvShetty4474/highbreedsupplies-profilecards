@@ -1,9 +1,11 @@
+import { requireAdminPage } from "@/lib/auth";
 import { ProgrammingWorkbench } from "@/components/admin/programming-workbench";
 import { fetchAllCards } from "@/lib/data";
 
 export const metadata = { title: "NFC Programming" };
 
 export default async function AdminProgrammingPage() {
+  await requireAdminPage();
   const cards = await fetchAllCards();
 
   return (

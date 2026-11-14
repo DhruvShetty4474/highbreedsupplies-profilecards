@@ -1,3 +1,4 @@
+import { requireAdminPage } from "@/lib/auth";
 import { BatchGenerator } from "@/components/admin/batch-generator";
 import { Badge } from "@/components/ui/badge";
 import { fetchAllCards } from "@/lib/data";
@@ -11,6 +12,7 @@ function toneFor(status: string) {
 }
 
 export default async function AdminCardsPage() {
+  await requireAdminPage();
   const cards = await fetchAllCards();
 
   return (

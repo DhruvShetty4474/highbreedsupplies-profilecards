@@ -11,7 +11,8 @@
     "db:generate": "drizzle-kit generate",
     "db:migrate:local": "wrangler d1 migrations apply highbreed --local",
     "db:migrate:remote": "wrangler d1 migrations apply highbreed --remote",
-    "db:seed:local": "tsx scripts/seed.ts && wrangler d1 execute highbreed --local --file=.seed/seed.sql"
+    "db:seed:local": "tsx scripts/seed.ts && wrangler d1 execute highbreed --local --file=.seed/seed.sql",
+    "admin:grant": "node scripts/grant-admin.mjs"
   },
   "dependencies": {
     "@aws-sdk/client-s3": "^3.1152.0",
