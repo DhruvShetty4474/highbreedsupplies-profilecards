@@ -6,7 +6,13 @@ import { Input } from "@/components/ui/input";
 import { FormEvent, useState } from "react";
 import { useRouter } from "next/navigation";
 
-export function LoginForm({ nextPath }: { nextPath?: string }) {
+export function LoginForm({
+  nextPath,
+  notice,
+}: {
+  nextPath?: string;
+  notice?: string;
+}) {
   const router = useRouter();
   const [pending, setPending] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -52,6 +58,16 @@ export function LoginForm({ nextPath }: { nextPath?: string }) {
         autoComplete="current-password"
         required
       />
+      <div className="-mt-2 text-right">
+        <Link href="/forgot-password" className="text-xs font-semibold text-hb-action">
+          Forgot password?
+        </Link>
+      </div>
+      {notice && !error ? (
+        <p className="text-sm text-hb-action" role="status">
+          {notice}
+        </p>
+      ) : null}
       {error ? (
         <p className="text-sm text-hb-danger" role="alert">
           {error}

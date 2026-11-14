@@ -1,4 +1,5 @@
-import { requireAdminPage } from "@/lib/auth";
+import { getSessionUser, requireAdminPage } from "@/lib/auth";
+import { AccountSecurity } from "@/components/auth/account-security";
 import { SignOutButton } from "@/components/auth/sign-out-button";
 import { redirect } from "next/navigation";
 
@@ -6,7 +7,8 @@ export const metadata = { title: "Admin Settings" };
 
 export default async function AdminSettingsPage() {
   const profile = await requireAdminPage();
-  if (!profile) redirect("/login");
+  const user = await getSessionUser();
+  if (!user) redirect("/login");
 
   return (
     <div className="max-w-2xl">
@@ -29,6 +31,9 @@ export default async function AdminSettingsPage() {
           <SignOutButton />
         </div>
       </section>
+      <div className="mt-4">
+        <AccountSecurity email={user.email} emailVerified={user.emailVerified} />
+      </div>
     </div>
   );
 }

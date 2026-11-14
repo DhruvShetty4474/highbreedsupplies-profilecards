@@ -61,7 +61,12 @@ export async function registerAndSignIn(a: NewAccount, headers: Headers) {
   await assertUsernameFree(a.username);
   await assertEmailFree(a.email);
   const res = await getAuth().api.signUpEmail({
-    body: { email: a.email, password: a.password, name: a.full_name },
+    body: {
+      email: a.email,
+      password: a.password,
+      name: a.full_name,
+      callbackURL: "/dashboard/settings?verified=1",
+    },
     headers,
   });
   await finishProfile(res.user.id, a);

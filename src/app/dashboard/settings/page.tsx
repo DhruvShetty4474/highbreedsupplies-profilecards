@@ -1,5 +1,6 @@
 import { SignOutButton } from "@/components/auth/sign-out-button";
-import { getSessionProfile } from "@/lib/auth";
+import { AccountSecurity } from "@/components/auth/account-security";
+import { getSessionProfile, getSessionUser } from "@/lib/auth";
 import { Mail, Phone } from "lucide-react";
 import Link from "next/link";
 import { redirect } from "next/navigation";
@@ -7,8 +8,8 @@ import { redirect } from "next/navigation";
 export const metadata = { title: "Settings" };
 
 export default async function DashboardSettingsPage() {
-  const profile = await getSessionProfile();
-  if (!profile) redirect("/login");
+  const [profile, user] = await Promise.all([getSessionProfile(), getSessionUser()]);
+  if (!profile || !user) redirect("/login");
 
   return (
     <div className="max-w-2xl">
@@ -42,6 +43,10 @@ export default async function DashboardSettingsPage() {
           Edit profile blocks
         </Link>
       </section>
+
+      <div className="mt-4">
+        <AccountSecurity email={user.email} emailVerified={user.emailVerified} />
+      </div>
 
       <section className="mt-4 rounded-2xl border border-hb-sand/80 bg-white p-6 shadow-soft">
         <h2 className="text-sm font-semibold text-hb-ink">Legal & support</h2>

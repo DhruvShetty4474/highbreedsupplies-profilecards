@@ -4,6 +4,7 @@
  */
 import { and, eq, inArray, lt, sql } from "drizzle-orm";
 import { customAlphabet } from "nanoid";
+import { getConfig } from "@/config";
 import type { DB } from "@/db";
 import * as schema from "@/db/schema";
 import type { MediaStore } from "@/lib/r2";
@@ -26,15 +27,14 @@ export const VIDEO_TYPES: Record<string, string> = {
 };
 
 const MB = 1024 * 1024;
-function envMb(name: string, fallback: number) {
-  const n = Number(process.env[name]);
-  return Number.isFinite(n) && n > 0 ? n : fallback;
-}
-export const mediaLimits = () => ({
-  imageBytes: envMb("MEDIA_MAX_IMAGE_MB", 5) * MB,
-  videoBytes: envMb("MEDIA_MAX_VIDEO_MB", 50) * MB,
-  quotaBytes: envMb("MEDIA_QUOTA_MB_PER_USER", 100) * MB,
-});
+export const mediaLimits = () => {
+  const c = getConfig();
+  return {
+    imageBytes: c.MEDIA_MAX_IMAGE_MB * MB,
+    videoBytes: c.MEDIA_MAX_VIDEO_MB * MB,
+    quotaBytes: c.MEDIA_QUOTA_MB_PER_USER * MB,
+  };
+};
 
 export class MediaError extends Error {
   constructor(public status: number, message: string) {

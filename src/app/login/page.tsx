@@ -9,9 +9,9 @@ export const metadata = { title: "Sign in" };
 export default async function LoginPage({
   searchParams,
 }: {
-  searchParams: Promise<{ next?: string }>;
+  searchParams: Promise<{ next?: string; reset?: string }>;
 }) {
-  const { next } = await searchParams;
+  const { next, reset } = await searchParams;
   const session = await getSessionProfile();
   if (session) {
     redirect(
@@ -79,7 +79,10 @@ export default async function LoginPage({
               applied automatically from the account.
             </p>
             <div className="mt-8">
-              <LoginForm nextPath={next} />
+              <LoginForm
+                nextPath={next}
+                notice={reset ? "Password updated — sign in with your new password." : undefined}
+              />
             </div>
           </div>
           <p className="mt-6 text-center text-sm leading-relaxed text-hb-leaf">

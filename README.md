@@ -140,3 +140,30 @@ Manual backup: `npm run db:backup`. Restore into a fresh database:
 gunzip highbreed-<stamp>.sql.gz
 npx wrangler d1 execute highbreed --remote --file highbreed-<stamp>.sql
 ```
+
+## Going live checklist
+
+Every setting is validated by [`src/config.ts`](src/config.ts) and documented in
+[`.env.example`](.env.example). Optional services degrade gracefully: no
+Resend key → emails are printed to the Workers log; no Sentry DSN → errors
+are only logged; no R2 keys → uploads are disabled with a clear message.
+
+| # | Service | Sign up / where | Paste into | How to test |
+|---|---------|-----------------|-----------|-------------|
+| 1 | **Cloudflare** (DNS, Workers, D1, R2) | [dash.cloudflare.com](https://dash.cloudflare.com/sign-up) — free plan | — (`npx wrangler login`) | Zone shows **Active**; `npx wrangler whoami` |
+| 2 | **Domain** at Hostinger | hPanel → Domains → Nameservers | Cloudflare's 2 nameservers | `nslookup -type=ns highbreedsupplies.com` shows `*.ns.cloudflare.com` |
+| 3 | **D1 database** | `npx wrangler d1 create highbreed` | `database_id` in `wrangler.jsonc` | `npm run db:migrate:remote` lists all migrations ✅ |
+| 4 | **Auth secret** | `openssl rand -base64 32` | `wrangler secret put BETTER_AUTH_SECRET` | Register at `/register`, sign out, sign in |
+| 5 | **App URL** | — | `APP_URL` in `wrangler.jsonc` vars | Admin → Cards → export CSV: `nfc_url` starts with `https://highbreedsupplies.com/c/` |
+| 6 | **First admin** | — | `wrangler secret put ADMIN_EMAILS` (before registering) or `npm run admin:grant -- you@x.com --remote` | `/admin` opens instead of redirecting |
+| 7 | **R2 media** | Dashboard → R2 → create `highbreed-media`, custom domain `media.highbreedsupplies.com`, API token | `R2_ACCOUNT_ID`, `R2_ACCESS_KEY_ID`, `R2_SECRET_ACCESS_KEY` (secrets); `R2_BUCKET_NAME`, `R2_PUBLIC_URL` (vars); CORS: `wrangler r2 bucket cors set highbreed-media --file docs/r2-cors.json` | Dashboard → Pages → upload a profile photo; it loads from `media.highbreedsupplies.com` |
+| 8 | **Email (Resend)** — optional but needed for real password resets | [resend.com](https://resend.com) → add & verify domain `highbreedsupplies.com` (DNS records go in Cloudflare) → API key | `wrangler secret put RESEND_API_KEY`; `EMAIL_FROM` var | `/forgot-password` with your email → email arrives. Then optionally set `REQUIRE_EMAIL_VERIFICATION=true` |
+| 9 | **Sentry** — optional | [sentry.io](https://sentry.io) → new project (Browser JavaScript) → copy DSN | `wrangler secret put SENTRY_DSN` | Errors from API routes appear in Sentry Issues |
+| 10 | **Backups** | GitHub repo → Settings → Secrets → Actions | `CLOUDFLARE_API_TOKEN` (D1 Edit + R2 Edit), `CLOUDFLARE_ACCOUNT_ID` | Actions → *Nightly D1 backup* → Run; file appears in `highbreed-backups/d1/` |
+
+Before announcing:
+
+- [ ] Change or remove the seeded demo accounts (the seed script is for local only — don't run it on `--remote`).
+- [ ] Program one physical card, verify read-back in Admin → Programming, tap it with a phone: activation page → register → profile.
+- [ ] Block that card in Admin → Cards and tap again: "Card disabled".
+- [ ] `npm run deploy` again after any `wrangler.jsonc` change.

@@ -21,6 +21,12 @@ export async function getSessionProfile(): Promise<Profile | null> {
   return fetchProfileById(session.user.id);
 }
 
+/** Better Auth user row (sign-in email + verification state). */
+export async function getSessionUser() {
+  const session = await getAuth().api.getSession({ headers: await headers() });
+  return session?.user ?? null;
+}
+
 export async function requireUser(): Promise<Profile> {
   const profile = await getSessionProfile();
   if (!profile) throw new AuthError(401);

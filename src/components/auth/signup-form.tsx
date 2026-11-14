@@ -10,6 +10,7 @@ export function SignupForm({ cardToken }: { cardToken?: string }) {
   const router = useRouter();
   const [pending, setPending] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [done, setDone] = useState<string | null>(null);
 
   async function onSubmit(e: FormEvent<HTMLFormElement>) {
     e.preventDefault();
@@ -33,8 +34,33 @@ export function SignupForm({ cardToken }: { cardToken?: string }) {
       setError(body.error || "Could not create account");
       return;
     }
-    router.push(cardToken ? `/c/${cardToken}` : "/dashboard");
+    const body = (await res.json()) as {
+      card_claimed?: boolean;
+      card_error?: string;
+      verification_required?: boolean;
+    };
+    if (body.verification_required) {
+      setDone(
+        (body.card_claimed ? "Your HighCard is activated. " : "") +
+          "Check your inbox and click the verification link to sign in."
+      );
+      return;
+    }
+    if (body.card_error) {
+      setDone(`Account created. ${body.card_error}`);
+      window.setTimeout(() => router.push("/dashboard"), 2500);
+      return;
+    }
+    router.push(body.card_claimed ? `/c/${cardToken}` : "/dashboard");
     router.refresh();
+  }
+
+  if (done) {
+    return (
+      <p className="rounded-xl bg-hb-mist px-4 py-4 text-sm text-hb-forest" role="status">
+        {done}
+      </p>
+    );
   }
 
   return (

@@ -1,4 +1,5 @@
 import { AwsClient } from "aws4fetch";
+import { getConfig } from "@/config";
 
 /**
  * Minimal object-store interface used by the media code. Production uses
@@ -13,16 +14,11 @@ export interface MediaStore {
 }
 
 export function mediaPublicBase() {
-  return (process.env.R2_PUBLIC_URL || "https://media.highbreedsupplies.com").replace(/\/$/, "");
+  return getConfig().R2_PUBLIC_URL;
 }
 
 export function isR2Configured() {
-  return Boolean(
-    process.env.R2_ACCOUNT_ID &&
-      process.env.R2_ACCESS_KEY_ID &&
-      process.env.R2_SECRET_ACCESS_KEY &&
-      process.env.R2_BUCKET_NAME
-  );
+  return getConfig().features.media;
 }
 
 let override: MediaStore | null = null;
@@ -35,13 +31,14 @@ export function getMediaStore(): MediaStore | null {
   if (override) return override;
   if (!isR2Configured()) return null;
 
+  const config = getConfig();
   const client = new AwsClient({
-    accessKeyId: process.env.R2_ACCESS_KEY_ID!,
-    secretAccessKey: process.env.R2_SECRET_ACCESS_KEY!,
+    accessKeyId: config.R2_ACCESS_KEY_ID!,
+    secretAccessKey: config.R2_SECRET_ACCESS_KEY!,
     service: "s3",
     region: "auto",
   });
-  const endpoint = `https://${process.env.R2_ACCOUNT_ID}.r2.cloudflarestorage.com/${process.env.R2_BUCKET_NAME}`;
+  const endpoint = `https://${config.R2_ACCOUNT_ID}.r2.cloudflarestorage.com/${config.R2_BUCKET_NAME}`;
   const objectUrl = (key: string) =>
     `${endpoint}/${key.split("/").map(encodeURIComponent).join("/")}`;
 

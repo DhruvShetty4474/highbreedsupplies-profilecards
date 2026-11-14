@@ -4,10 +4,11 @@ import { z } from "zod";
 import { getDb, schema } from "@/db";
 import { getAuth } from "@/lib/auth-server";
 import { fetchProfileById } from "@/lib/data";
+import { clientIp, hitRateLimit, LIMITS } from "@/lib/rate-limit";
 
-const schemaBody = z.object({
-  login_id: z.string().min(1),
-  password: z.string().min(1),
+const bodySchema = z.object({
+  login_id: z.string().min(1).max(254),
+  password: z.string().min(1).max(128),
 });
 
 /** Resolve "email or username" to the account email. */
@@ -23,11 +24,35 @@ async function resolveEmail(loginId: string) {
   return row?.email ?? null;
 }
 
+function tooMany(retryAfter: number) {
+  return NextResponse.json(
+    { error: "Too many sign-in attempts. Please wait and try again." },
+    { status: 429, headers: { "Retry-After": String(retryAfter) } }
+  );
+}
+
 export async function POST(request: Request) {
-  const parsed = schemaBody.safeParse(await request.json().catch(() => null));
+  const parsed = bodySchema.safeParse(await request.json().catch(() => null));
   if (!parsed.success) {
     return NextResponse.json({ error: "Enter login ID and password" }, { status: 400 });
   }
+
+  const db = getDb();
+  const ip = await hitRateLimit(
+    db,
+    `login:ip:${clientIp(request.headers)}`,
+    LIMITS.loginPerIp.max,
+    LIMITS.loginPerIp.window
+  );
+  if (!ip.ok) return tooMany(ip.retryAfter);
+  // Per-account limit slows password guessing spread over many IPs.
+  const acct = await hitRateLimit(
+    db,
+    `login:acct:${parsed.data.login_id.trim().toLowerCase()}`,
+    LIMITS.loginPerAccount.max,
+    LIMITS.loginPerAccount.window
+  );
+  if (!acct.ok) return tooMany(acct.retryAfter);
 
   const invalid = NextResponse.json(
     { error: "Invalid login ID or password" },
@@ -49,7 +74,17 @@ export async function POST(request: Request) {
       role: profile?.role ?? "client",
       username: profile?.username,
     });
-  } catch {
+  } catch (err) {
+    const code = (err as { body?: { code?: string } })?.body?.code;
+    if (code === "EMAIL_NOT_VERIFIED") {
+      return NextResponse.json(
+        {
+          error: "Please verify your email first — we've sent you a new link.",
+          code,
+        },
+        { status: 403 }
+      );
+    }
     return invalid;
   }
 }
