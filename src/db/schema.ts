@@ -182,9 +182,12 @@ export const cards = sqliteTable(
     programmed_at: text("programmed_at"),
     activated_at: text("activated_at"),
     blocked_at: text("blocked_at"),
-    programming_verified: integer("programming_verified", { mode: "boolean" })
+    /** Factory NFC write state — independent of activation `status`. */
+    programming_status: text("programming_status", {
+      enum: ["UNPROGRAMMED", "PROGRAMMED", "FAILED"],
+    })
       .notNull()
-      .default(false),
+      .default("UNPROGRAMMED"),
     created_at: text("created_at").notNull().default(nowIso),
     updated_at: text("updated_at").notNull().default(nowIso),
   },
@@ -194,6 +197,12 @@ export const cards = sqliteTable(
     index("idx_cards_batch").on(t.batch_id),
   ]
 );
+
+/** Persistent sequences (e.g. card_id) — never reused, never reset. */
+export const counters = sqliteTable("counters", {
+  name: text("name").primaryKey(),
+  value: integer("value").notNull().default(0),
+});
 
 export const leads = sqliteTable(
   "leads",

@@ -16,6 +16,8 @@ export function publicProfileUrl(username: string, origin?: string) {
   return `${base}/${username}`;
 }
 
-export function qrImageUrl(data: string, size = 280) {
-  return `https://api.qrserver.com/v1/create-qr-code/?size=${size}x${size}&data=${encodeURIComponent(data)}&margin=12`;
+/** QR as a PNG data URL, generated locally (no third-party QR service). */
+export async function qrDataUrl(data: string, size = 280) {
+  const QRCode = (await import("qrcode")).default;
+  return QRCode.toDataURL(data, { width: size, margin: 2, errorCorrectionLevel: "M" });
 }

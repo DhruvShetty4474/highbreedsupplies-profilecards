@@ -1,10 +1,9 @@
-import { and, eq } from "drizzle-orm";
 import { NextResponse } from "next/server";
 import { z } from "zod";
-import { getDb, schema } from "@/db";
+import { getDb } from "@/db";
 import { requireUser } from "@/lib/auth";
 import { errorResponse } from "@/lib/api";
-import { fetchCardByToken } from "@/lib/data";
+import { claimCard } from "@/lib/cards";
 
 const bodySchema = z.object({
   public_token: z.string().min(6),
@@ -18,36 +17,16 @@ export async function POST(request: Request) {
     if (!parsed.success) {
       return NextResponse.json({ error: "Invalid token" }, { status: 400 });
     }
-    const token = parsed.data.public_token;
 
-    // Atomic: only flips a card that is still UNCLAIMED.
-    const res = await getDb()
-      .update(schema.cards)
-      .set({
-        status: "ACTIVE",
-        user_id: profile.user_id,
-        activated_at: new Date().toISOString(),
-        updated_at: new Date().toISOString(),
-      })
-      .where(
-        and(
-          eq(schema.cards.public_token, token),
-          eq(schema.cards.status, "UNCLAIMED")
-        )
-      );
-
-    if (res.meta.changes !== 1) {
-      const card = await fetchCardByToken(token);
-      if (!card) {
-        return NextResponse.json({ error: "Card not found" }, { status: 404 });
-      }
-      if (card.status === "BLOCKED") {
-        return NextResponse.json({ error: "Card is blocked" }, { status: 403 });
-      }
-      if (card.user_id !== profile.user_id) {
-        return NextResponse.json({ error: "Card already claimed" }, { status: 409 });
-      }
-      // Already ours — idempotent success.
+    const result = await claimCard(getDb(), parsed.data.public_token, profile.user_id);
+    if (!result.ok) {
+      const map = {
+        not_found: [404, "Card not found"],
+        blocked: [403, "Card is blocked"],
+        taken: [409, "Card already claimed"],
+      } as const;
+      const [status, error] = map[result.reason];
+      return NextResponse.json({ error }, { status });
     }
 
     return NextResponse.json({

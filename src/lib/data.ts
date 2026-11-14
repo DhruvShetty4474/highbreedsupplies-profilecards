@@ -92,6 +92,23 @@ export async function fetchCardsForUser(userId: string): Promise<Card[]> {
 }
 
 /** Admin-only callers. */
+export async function fetchCardsForBatch(batchId: string): Promise<Card[]> {
+  return getDb()
+    .select()
+    .from(schema.cards)
+    .where(eq(schema.cards.batch_id, batchId))
+    .orderBy(schema.cards.card_id);
+}
+
+/** Admin-only callers. */
+export async function fetchBatches() {
+  return getDb()
+    .select()
+    .from(schema.cardBatches)
+    .orderBy(desc(schema.cardBatches.created_at));
+}
+
+/** Admin-only callers. */
 export async function fetchAllCards(): Promise<Card[]> {
   return getDb().select().from(schema.cards).orderBy(schema.cards.card_id);
 }
@@ -180,7 +197,7 @@ export async function fetchAdminMetrics(): Promise<AdminMetrics> {
     db
       .select({ n: count() })
       .from(schema.cards)
-      .where(eq(schema.cards.programming_verified, true))
+      .where(eq(schema.cards.programming_status, "PROGRAMMED"))
       .get(),
     db
       .select({ n: count() })

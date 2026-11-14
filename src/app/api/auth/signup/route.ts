@@ -1,8 +1,8 @@
-import { and, eq } from "drizzle-orm";
 import { NextResponse } from "next/server";
 import { z } from "zod";
-import { getDb, schema } from "@/db";
+import { getDb } from "@/db";
 import { AccountError, registerAndSignIn } from "@/lib/accounts";
+import { claimCard } from "@/lib/cards";
 
 // Note: no `role` field — signup can only ever create a client.
 const bodySchema = z.object({
@@ -45,21 +45,8 @@ export async function POST(request: Request) {
 
   let card_claimed = false;
   if (parsed.data.card_token) {
-    // Only an UNCLAIMED card can be taken; the WHERE makes it atomic.
-    const res = await getDb()
-      .update(schema.cards)
-      .set({
-        status: "ACTIVE",
-        user_id: userId,
-        activated_at: new Date().toISOString(),
-      })
-      .where(
-        and(
-          eq(schema.cards.public_token, parsed.data.card_token),
-          eq(schema.cards.status, "UNCLAIMED")
-        )
-      );
-    card_claimed = res.meta.changes === 1;
+    const result = await claimCard(getDb(), parsed.data.card_token, userId);
+    card_claimed = result.ok;
   }
 
   return NextResponse.json({ ok: true, role: "client", username, card_claimed });

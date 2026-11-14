@@ -1,22 +1,8 @@
 import { clsx, type ClassValue } from "clsx";
 import { twMerge } from "tailwind-merge";
-import { customAlphabet } from "nanoid";
 
 export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs));
-}
-
-const tokenAlphabet = customAlphabet(
-  "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789",
-  24
-);
-
-export function generatePublicToken() {
-  return `tok_${tokenAlphabet()}`;
-}
-
-export function formatCardId(sequence: number) {
-  return `HB${String(sequence).padStart(6, "0")}`;
 }
 
 export function appUrl(path = "") {
@@ -28,7 +14,7 @@ export function appUrl(path = "") {
 }
 
 export function cardNfcUrl(token: string) {
-  return appUrl(`/c/${token}`);
+  return `${appUrl()}/c/${token}`;
 }
 
 export function initials(name: string) {

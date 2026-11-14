@@ -77,6 +77,11 @@ async function main() {
     );
   }
 
+  // Keep the card_id counter ahead of the seeded HB000001..HB000005.
+  out.push(
+    "INSERT INTO counters (name,value) VALUES ('card_id',5) ON CONFLICT(name) DO UPDATE SET value=max(value,5);"
+  );
+
   mkdirSync(".seed", { recursive: true });
   writeFileSync(".seed/seed.sql", out.join("\n") + "\n");
   console.log("Wrote .seed/seed.sql");

@@ -1,21 +1,21 @@
-import { eq } from "drizzle-orm";
 import { NextResponse } from "next/server";
 import { z } from "zod";
-import { getDb, schema } from "@/db";
+import { getDb } from "@/db";
 import { errorResponse } from "@/lib/api";
 import { requireAdmin } from "@/lib/auth";
+import { recordVerification } from "@/lib/cards";
 import { fetchCardById } from "@/lib/data";
 
 type Params = { params: Promise<{ card_id: string }> };
 
 const bodySchema = z.object({
-  nfc_payload_readback: z.string().min(8),
+  nfc_payload_readback: z.string().min(8).max(2048),
   device_meta: z.record(z.string(), z.unknown()).optional(),
 });
 
 /**
- * Read-back verification.
- * NOTE: ported as-is; Phase 3 stops this from touching `status`.
+ * Factory read-back verification. Sets programming_status and logs the
+ * attempt. Does NOT change the card's activation status.
  */
 export async function POST(request: Request, { params }: Params) {
   try {
@@ -32,37 +32,19 @@ export async function POST(request: Request, { params }: Params) {
       return NextResponse.json({ error: "Card not found" }, { status: 404 });
     }
 
-    const readback = parsed.data.nfc_payload_readback.trim();
-    const success =
-      readback === card.nfc_url ||
-      readback === card.nfc_url.replace(/^https?:\/\//, "");
-
-    const db = getDb();
-    await db.insert(schema.cardProgrammingLogs).values({
-      id: crypto.randomUUID(),
-      card_id,
-      verified_by: profile.user_id,
-      nfc_payload_readback: parsed.data.nfc_payload_readback,
-      success,
-      device_meta: parsed.data.device_meta ?? {},
-    });
-
-    if (success) {
-      await db
-        .update(schema.cards)
-        .set({
-          programming_verified: true,
-          programmed_at: new Date().toISOString(),
-          status: "UNCLAIMED",
-        })
-        .where(eq(schema.cards.card_id, card_id));
-    }
+    const result = await recordVerification(
+      getDb(),
+      card,
+      parsed.data.nfc_payload_readback,
+      profile.user_id,
+      parsed.data.device_meta ?? {}
+    );
 
     return NextResponse.json({
       ok: true,
-      success,
-      status: success ? "UNCLAIMED" : card.status,
-      programming_verified: success,
+      success: result.success,
+      programming_status: result.programming_status,
+      status: card.status,
     });
   } catch (err) {
     return errorResponse(err);

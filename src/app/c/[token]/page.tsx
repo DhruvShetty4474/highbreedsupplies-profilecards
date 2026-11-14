@@ -4,7 +4,8 @@ import { Badge } from "@/components/ui/badge";
 import { getSessionProfile } from "@/lib/auth";
 import { fetchCardByToken, fetchProfileById } from "@/lib/data";
 import { ShieldAlert } from "lucide-react";
-import { redirect } from "next/navigation";
+import { notFound, redirect } from "next/navigation";
+import { resolveCardView, TOKEN_RE } from "@/lib/cards";
 
 export const dynamic = "force-dynamic";
 
@@ -26,25 +27,18 @@ function PublicCardShell({ children }: { children: React.ReactNode }) {
 
 export default async function CardTokenRouterPage({ params }: Props) {
   const { token } = await params;
-  const card = await fetchCardByToken(token);
+  const card = TOKEN_RE.test(token) ? await fetchCardByToken(token) : null;
+  const owner =
+    card?.status === "ACTIVE" && card.user_id
+      ? await fetchProfileById(card.user_id)
+      : null;
+  const result = resolveCardView(card, owner);
 
-  if (!card) {
-    return (
-      <PublicCardShell>
-        <div className="p-8 pt-12">
-          <HighbreedWordmark />
-          <h1 className="mt-8 font-display text-3xl text-hb-ink">
-            Card not found
-          </h1>
-          <p className="mt-3 text-sm leading-relaxed text-hb-leaf">
-            This HighCard token is invalid or has not been provisioned yet.
-          </p>
-        </div>
-      </PublicCardShell>
-    );
-  }
+  if (result.view === "not_found") notFound();
+  if (result.view === "profile") redirect(`/${result.username}`);
 
-  if (card.status === "BLOCKED") {
+  if (result.view === "blocked") {
+    const card = result.card;
     return (
       <PublicCardShell>
         <div>
@@ -68,20 +62,13 @@ export default async function CardTokenRouterPage({ params }: Props) {
     );
   }
 
-  if (card.status === "ACTIVE" && card.user_id) {
-    const profile = await fetchProfileById(card.user_id);
-    if (profile?.username) {
-      redirect(`/${profile.username}`);
-    }
-  }
-
   const session = await getSessionProfile();
 
   return (
     <PublicCardShell>
       <div className="p-6 pt-10">
         <HighbreedWordmark />
-        <ClaimCardPanel card={card} sessionUsername={session?.username} />
+        <ClaimCardPanel card={result.card} sessionUsername={session?.username} />
       </div>
     </PublicCardShell>
   );

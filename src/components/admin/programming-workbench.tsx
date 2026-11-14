@@ -53,8 +53,8 @@ export function ProgrammingWorkbench({ cards }: { cards: Card[] }) {
     }
     setMessage(
       body.success
-        ? "Read-back verified. Card flagged UNCLAIMED + programmed."
-        : "Read-back mismatch — card not marked programmed."
+        ? "Read-back verified — programming_status = PROGRAMMED. Activation status unchanged."
+        : "Read-back mismatch — programming_status = FAILED. Rewrite the tag and verify again."
     );
     router.refresh();
   }
@@ -79,7 +79,7 @@ export function ProgrammingWorkbench({ cards }: { cards: Card[] }) {
             >
               <span>{card.card_id}</span>
               <span className="text-[10px] opacity-80">
-                {card.programming_verified ? "OK" : "…"}
+                {card.programming_status === "PROGRAMMED" ? "OK" : card.programming_status === "FAILED" ? "FAIL" : "…"}
               </span>
             </button>
           ))}

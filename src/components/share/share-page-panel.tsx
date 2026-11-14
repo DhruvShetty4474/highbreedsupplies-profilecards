@@ -2,7 +2,7 @@
 
 import { Button } from "@/components/ui/button";
 import { Sheet } from "@/components/ui/sheet";
-import { qrImageUrl } from "@/lib/share-prefs";
+import { qrDataUrl } from "@/lib/share-prefs";
 import { cn } from "@/lib/utils";
 import {
   Copy,
@@ -16,7 +16,7 @@ import {
   Sparkles,
   Wallet,
 } from "lucide-react";
-import { useMemo, useState } from "react";
+import { useEffect, useState } from "react";
 
 type Props = {
   userId: string;
@@ -97,7 +97,14 @@ export function SharePagePanel({
   const [toast, setToast] = useState<string | null>(null);
   const [pending, setPending] = useState(false);
 
-  const qrSrc = useMemo(() => qrImageUrl(pageUrl, 320), [pageUrl]);
+  const [qrSrc, setQrSrc] = useState("");
+  useEffect(() => {
+    let live = true;
+    qrDataUrl(pageUrl, 640).then((url) => live && setQrSrc(url));
+    return () => {
+      live = false;
+    };
+  }, [pageUrl]);
 
   function flash(msg: string) {
     setToast(msg);
@@ -144,8 +151,6 @@ export function SharePagePanel({
         const a = document.createElement("a");
         a.href = qrSrc;
         a.download = `${username}-highbreed-qr.png`;
-        a.target = "_blank";
-        a.rel = "noopener";
         a.click();
         flash("QR download started");
         break;
@@ -204,7 +209,7 @@ export function SharePagePanel({
           <div className="shrink-0 rounded-2xl border border-hb-sand bg-hb-fog p-3">
             {/* eslint-disable-next-line @next/next/no-img-element */}
             <img
-              src={qrSrc}
+              src={qrSrc || undefined}
               alt={`QR for ${username}`}
               className="h-44 w-44 rounded-xl bg-white sm:h-52 sm:w-52"
             />

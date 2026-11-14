@@ -22,9 +22,6 @@ export async function GET(_request: Request, { params }: Params) {
     return NextResponse.json({ error: "Card not found" }, { status: 404 });
   }
 
-  const programming_status = card.programming_verified
-    ? "PROGRAMMED"
-    : "UNPROGRAMMED";
 
   return NextResponse.json({
     card_id: card.card_id,
@@ -32,8 +29,7 @@ export async function GET(_request: Request, { params }: Params) {
     /** Lifecycle status for the smart router (UNCLAIMED | ACTIVE | BLOCKED) */
     status: card.status,
     /** Factory write state — programming ≠ activation */
-    programming_status,
-    programming_verified: card.programming_verified,
+    programming_status: card.programming_status,
     nfc_uid: card.nfc_uid ?? null,
     /** Exact URI payload for NFC NDEF URI record */
     nfc_url: card.nfc_url,

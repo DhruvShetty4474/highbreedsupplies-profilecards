@@ -1,5 +1,6 @@
 export type AppRole = "admin" | "client";
 export type CardStatus = "UNCLAIMED" | "ACTIVE" | "BLOCKED";
+export type ProgrammingStatus = "UNPROGRAMMED" | "PROGRAMMED" | "FAILED";
 
 export type SocialLink = {
   id: string;
@@ -96,7 +97,7 @@ export type Card = {
   programmed_at: string | null;
   activated_at: string | null;
   blocked_at: string | null;
-  programming_verified: boolean;
+  programming_status: ProgrammingStatus;
   created_at?: string;
   updated_at?: string;
 };
