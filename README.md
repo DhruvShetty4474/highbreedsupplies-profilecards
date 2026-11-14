@@ -167,3 +167,27 @@ Before announcing:
 - [ ] Program one physical card, verify read-back in Admin → Programming, tap it with a phone: activation page → register → profile.
 - [ ] Block that card in Admin → Cards and tap again: "Card disabled".
 - [ ] `npm run deploy` again after any `wrangler.jsonc` change.
+
+## Tests
+
+```bash
+npm test            # vitest: 46 tests, in-memory SQLite with the real D1 migrations
+npm run typecheck && npm run lint && npm run build
+```
+
+The suites run the real route handlers and Better Auth against libSQL, with
+`next/headers` mocked as a cookie jar and an in-memory fake for R2:
+
+- `cards.test.ts`: unique card_id/token generation (incl. concurrent
+  batches, DB constraints, all-or-nothing batches), resolver for all four
+  states, verify never changes `status`, second/concurrent claims fail,
+  block/unblock, CSV.
+- `authz.test.ts`: every `/api/admin/*` endpoint gives 401 to anonymous
+  users and 403 to clients; no role escalation through signup, the raw
+  Better Auth endpoints or a profile update.
+- `media.test.ts`: types, per-file limits, quota (including the real size
+  checked on completion), R2 deletion on remove/replace, YouTube parsing.
+- `auth-flow.test.ts`: register/login/logout, login rate limiting,
+  password reset (link, token reuse rejected), change password, delete
+  account.
+- `config.test.ts`: env validation messages and optional services.
