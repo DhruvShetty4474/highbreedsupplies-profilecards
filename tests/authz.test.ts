@@ -27,7 +27,7 @@ beforeEach(async () => {
     quantity: 1,
     label: "T",
     createdBy: null,
-    baseUrl: "https://highbreedsupplies.com",
+    baseUrl: "https://highfis.com",
   });
   cardId = b.cards[0].card_id;
   batchId = b.batchId;
@@ -36,7 +36,7 @@ beforeEach(async () => {
 /** Every admin endpoint, called with the current browser's session. */
 const adminCalls = () => [
   ["programming-data", () => programmingData(req("/x"), params({ card_id: cardId }))],
-  ["verify", () => verifyRoute(req("/x", { body: { nfc_payload_readback: "https://highbreedsupplies.com/c/x" } }), params({ card_id: cardId }))],
+  ["verify", () => verifyRoute(req("/x", { body: { nfc_payload_readback: "https://highfis.com/c/x" } }), params({ card_id: cardId }))],
   ["status", () => statusRoute(req("/x", { body: { action: "block" } }), params({ card_id: cardId }))],
   ["qr", () => qrRoute(req("/x"), params({ card_id: cardId }))],
   ["create batch", () => createBatchRoute(req("/x", { body: { quantity: 1, batch_label: "Nope" } }))],
@@ -66,7 +66,7 @@ describe("admin API authorization", () => {
     const res = await programmingData(req("/x"), params({ card_id: cardId }));
     expect(res.status).toBe(200);
     const body = await res.json();
-    expect(body.nfc_url).toMatch(/^https:\/\/highbreedsupplies\.com\/c\/tok_/);
+    expect(body.nfc_url).toMatch(/^https:\/\/highfis.com\/c\/tok_/);
     expect(body.programming_status).toBe("UNPROGRAMMED");
   });
 

@@ -28,7 +28,7 @@ beforeEach(async () => {
   testIp.value = `192.0.2.${ip++}`;
 });
 
-const BASE = "https://highbreedsupplies.com";
+const BASE = "https://highfis.com";
 
 async function cardRow(cardId: string) {
   return (await db.select().from(schema.cards).where(eq(schema.cards.card_id, cardId)).get())!;

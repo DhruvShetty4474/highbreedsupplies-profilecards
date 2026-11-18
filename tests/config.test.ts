@@ -35,11 +35,11 @@ describe("config", () => {
   it("parses admin emails and trims the app URL", () => {
     const c = parseConfig({
       BETTER_AUTH_SECRET: SECRET,
-      APP_URL: "https://highbreedsupplies.com/",
+      APP_URL: "https://highfis.com/",
       ADMIN_EMAILS: " A@x.com, b@y.com ,",
       RESEND_API_KEY: "re_123",
     });
-    expect(c.APP_URL).toBe("https://highbreedsupplies.com");
+    expect(c.APP_URL).toBe("https://highfis.com");
     expect(c.adminEmails).toEqual(["a@x.com", "b@y.com"]);
     expect(c.features.email).toBe(true);
   });

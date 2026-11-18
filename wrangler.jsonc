@@ -8,17 +8,19 @@
     "directory": ".open-next/assets",
     "binding": "ASSETS"
   },
-  // Serves the Worker on the apex + www. Both zones must be on Cloudflare
-  // (see README → Deploy). Wrangler creates the DNS records + certificates.
-  "routes": [
-    { "pattern": "highbreedsupplies.com", "custom_domain": true },
-    { "pattern": "www.highbreedsupplies.com", "custom_domain": true }
-  ],
+  // Free https://highbreed.<subdomain>.workers.dev address (testing).
+  "workers_dev": true,
+  // GO-LIVE: once highfis.com shows "Active" in Cloudflare (nameservers
+  // moved from Hostinger), uncomment these routes, set APP_URL below to
+  // https://highfis.com, and redeploy. Wrangler creates DNS + certificates.
+  // "routes": [
+  //   { "pattern": "highfis.com", "custom_domain": true },
+  //   { "pattern": "www.highfis.com", "custom_domain": true }
+  // ],
   "d1_databases": [
     {
       "binding": "DB",
       "database_name": "highbreed",
-      // Replace with the id printed by `npx wrangler d1 create highbreed`
       "database_id": "dc8822d5-e79b-4eeb-b4eb-2f808efa7b68",
       "migrations_dir": "migrations"
     }
@@ -27,9 +29,9 @@
   // Non-secret settings. Secrets (BETTER_AUTH_SECRET, R2 keys, RESEND_API_KEY,
   // ...) are set with `npx wrangler secret put NAME` — never commit them.
   "vars": {
-    "APP_URL": "https://highbreedsupplies.com",
+    "APP_URL": "https://highfis.com",
     "R2_BUCKET_NAME": "highbreed-media",
-    "R2_PUBLIC_URL": "https://media.highbreedsupplies.com",
+    "R2_PUBLIC_URL": "https://media.highfis.com",
     "MEDIA_MAX_IMAGE_MB": "5",
     "MEDIA_MAX_VIDEO_MB": "50",
     "MEDIA_QUOTA_MB_PER_USER": "100"

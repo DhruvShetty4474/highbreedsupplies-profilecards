@@ -30,7 +30,7 @@ type SeedUser = {
 
 const users: SeedUser[] = [
   {
-    email: process.env.SEED_ADMIN_EMAIL || "admin@highbreedsupplies.com",
+    email: process.env.SEED_ADMIN_EMAIL || "admin@highfis.com",
     password: process.env.SEED_ADMIN_PASSWORD || "HighbreedAdmin!23",
     name: "HIGHBREED Admin",
     username: "highbreed_admin",

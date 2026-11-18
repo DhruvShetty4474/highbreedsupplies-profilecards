@@ -18,7 +18,7 @@ or username printed by the seed script (defaults below; change them before produ
 
 | Login | Password | Role |
 |-------|----------|------|
-| `admin@highbreedsupplies.com` | `HighbreedAdmin!23` | Admin console |
+| `admin@highfis.com` | `HighbreedAdmin!23` | Admin console |
 | `client@example.com` | `HighbreedClient!23` | Customer |
 
 Roles are set only on the server: everyone who signs up is a `client`. Admins
@@ -63,7 +63,7 @@ enough to start; the Worker is ~1.6 MB gzipped (free limit 3 MB).
 
 ### 1. Move DNS from Hostinger to Cloudflare
 
-1. Create a free Cloudflare account → **Add a domain** → `highbreedsupplies.com` → Free plan.
+1. Create a free Cloudflare account → **Add a domain** → `highfis.com` → Free plan.
 2. Cloudflare imports existing DNS records. Keep any **MX / TXT (email)** records
    you use at Hostinger; delete old **A/CNAME** records for `@` and `www`
    (the Worker will own them).
@@ -88,7 +88,7 @@ npx wrangler r2 bucket cors set highbreed-media --file docs/r2-cors.json
 ```
 
 - Dashboard → **R2 → highbreed-media → Settings → Custom Domains → Connect
-  Domain** → `media.highbreedsupplies.com`.
+  Domain** → `media.highfis.com`.
 - Dashboard → **R2 → Manage R2 API Tokens → Create API token** →
   *Object Read & Write*, restricted to `highbreed-media`. Copy the Access Key
   ID, Secret Access Key, and your Account ID.
@@ -100,7 +100,7 @@ npx wrangler secret put BETTER_AUTH_SECRET      # openssl rand -base64 32
 npx wrangler secret put R2_ACCOUNT_ID
 npx wrangler secret put R2_ACCESS_KEY_ID
 npx wrangler secret put R2_SECRET_ACCESS_KEY
-npx wrangler secret put ADMIN_EMAILS            # e.g. you@highbreedsupplies.com
+npx wrangler secret put ADMIN_EMAILS            # e.g. you@highfis.com
 ```
 
 Non-secret settings (`APP_URL`, `R2_BUCKET_NAME`, `R2_PUBLIC_URL`, media
@@ -113,8 +113,8 @@ npm run preview     # optional: run the real Worker locally (workerd) on :8787
 npm run deploy      # build with OpenNext + deploy; attaches the custom domains
 ```
 
-`routes` in `wrangler.jsonc` attaches `highbreedsupplies.com` and
-`www.highbreedsupplies.com` as Workers Custom Domains (DNS + TLS automatic).
+`routes` in `wrangler.jsonc` attaches `highfis.com` and
+`www.highfis.com` as Workers Custom Domains (DNS + TLS automatic).
 
 > Windows: builds work, but if OpenNext ever misbehaves, run `npm run deploy` from WSL.
 
@@ -151,14 +151,14 @@ are only logged; no R2 keys → uploads are disabled with a clear message.
 | # | Service | Sign up / where | Paste into | How to test |
 |---|---------|-----------------|-----------|-------------|
 | 1 | **Cloudflare** (DNS, Workers, D1, R2) | [dash.cloudflare.com](https://dash.cloudflare.com/sign-up) — free plan | — (`npx wrangler login`) | Zone shows **Active**; `npx wrangler whoami` |
-| 2 | **Domain** at Hostinger | hPanel → Domains → Nameservers | Cloudflare's 2 nameservers | `nslookup -type=ns highbreedsupplies.com` shows `*.ns.cloudflare.com` |
+| 2 | **Domain** at Hostinger | hPanel → Domains → Nameservers | Cloudflare's 2 nameservers | `nslookup -type=ns highfis.com` shows `*.ns.cloudflare.com` |
 | 3 | **D1 database** | `npx wrangler d1 create highbreed` | `database_id` in `wrangler.jsonc` | `npm run db:migrate:remote` lists all migrations ✅ |
 | 4 | **Auth secret** | `openssl rand -base64 32` | `wrangler secret put BETTER_AUTH_SECRET` | Register at `/register`, sign out, sign in |
-| 5 | **App URL** | — | `APP_URL` in `wrangler.jsonc` vars | Admin → Cards → export CSV: `nfc_url` starts with `https://highbreedsupplies.com/c/` |
+| 5 | **App URL** | — | `APP_URL` in `wrangler.jsonc` vars | Admin → Cards → export CSV: `nfc_url` starts with `https://highfis.com/c/` |
 | 6 | **First admin** | — | `wrangler secret put ADMIN_EMAILS` (before registering) or `npm run admin:grant -- you@x.com --remote` | `/admin` opens instead of redirecting |
-| 7 | **R2 media** | Dashboard → R2 → create `highbreed-media`, custom domain `media.highbreedsupplies.com`, API token | `R2_ACCOUNT_ID`, `R2_ACCESS_KEY_ID`, `R2_SECRET_ACCESS_KEY` (secrets); `R2_BUCKET_NAME`, `R2_PUBLIC_URL` (vars); CORS: `wrangler r2 bucket cors set highbreed-media --file docs/r2-cors.json` | Dashboard → Pages → upload a profile photo; it loads from `media.highbreedsupplies.com` |
-| 8 | **Email (Resend)** — optional but needed for real password resets | [resend.com](https://resend.com) → add & verify domain `highbreedsupplies.com` (DNS records go in Cloudflare) → API key | `wrangler secret put RESEND_API_KEY`; `EMAIL_FROM` var | `/forgot-password` with your email → email arrives. Then optionally set `REQUIRE_EMAIL_VERIFICATION=true` |
-| 8b | **Google sign-in** — optional | [console.cloud.google.com](https://console.cloud.google.com) → APIs & Services → OAuth consent screen (External) → Credentials → OAuth client ID (Web). Redirect URI `https://highbreedsupplies.com/api/auth/callback/google` | `wrangler secret put GOOGLE_CLIENT_ID` and `GOOGLE_CLIENT_SECRET` | "Continue with Google" appears on /login; sign in lands on /dashboard |
+| 7 | **R2 media** | Dashboard → R2 → create `highbreed-media`, custom domain `media.highfis.com`, API token | `R2_ACCOUNT_ID`, `R2_ACCESS_KEY_ID`, `R2_SECRET_ACCESS_KEY` (secrets); `R2_BUCKET_NAME`, `R2_PUBLIC_URL` (vars); CORS: `wrangler r2 bucket cors set highbreed-media --file docs/r2-cors.json` | Dashboard → Pages → upload a profile photo; it loads from `media.highfis.com` |
+| 8 | **Email (Resend)** — optional but needed for real password resets | [resend.com](https://resend.com) → add & verify domain `highfis.com` (DNS records go in Cloudflare) → API key | `wrangler secret put RESEND_API_KEY`; `EMAIL_FROM` var | `/forgot-password` with your email → email arrives. Then optionally set `REQUIRE_EMAIL_VERIFICATION=true` |
+| 8b | **Google sign-in** — optional | [console.cloud.google.com](https://console.cloud.google.com) → APIs & Services → OAuth consent screen (External) → Credentials → OAuth client ID (Web). Redirect URI `https://highfis.com/api/auth/callback/google` | `wrangler secret put GOOGLE_CLIENT_ID` and `GOOGLE_CLIENT_SECRET` | "Continue with Google" appears on /login; sign in lands on /dashboard |
 | 9 | **Sentry** — optional | [sentry.io](https://sentry.io) → new project (Browser JavaScript) → copy DSN | `wrangler secret put SENTRY_DSN` | Errors from API routes appear in Sentry Issues |
 | 10 | **Backups** | GitHub repo → Settings → Secrets → Actions | `CLOUDFLARE_API_TOKEN` (D1 Edit + R2 Edit), `CLOUDFLARE_ACCOUNT_ID` | Actions → *Nightly D1 backup* → Run; file appears in `highbreed-backups/d1/` |
 

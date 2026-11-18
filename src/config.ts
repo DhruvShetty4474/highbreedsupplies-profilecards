@@ -35,14 +35,14 @@ const schema = z
     R2_ACCESS_KEY_ID: optionalString,
     R2_SECRET_ACCESS_KEY: optionalString,
     R2_BUCKET_NAME: optionalString,
-    R2_PUBLIC_URL: z.string().url().default("https://media.highbreedsupplies.com"),
+    R2_PUBLIC_URL: z.string().url().default("https://media.highfis.com"),
     MEDIA_MAX_IMAGE_MB: positiveNumber(5),
     MEDIA_MAX_VIDEO_MB: positiveNumber(50),
     MEDIA_QUOTA_MB_PER_USER: positiveNumber(100),
 
     // --- Email (optional; logs to console without a key) --------------------
     RESEND_API_KEY: optionalString,
-    EMAIL_FROM: z.string().default("HIGHBREED <no-reply@highbreedsupplies.com>"),
+    EMAIL_FROM: z.string().default("HIGHBREED <no-reply@highfis.com>"),
     REQUIRE_EMAIL_VERIFICATION: z
       .enum(["true", "false"])
       .optional()

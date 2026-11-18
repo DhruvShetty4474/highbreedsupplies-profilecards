@@ -23,4 +23,4 @@ jobs:
       - run: npm test
       - run: npm run build
         env:
-          APP_URL: https://highbreedsupplies.com
+          APP_URL: https://highfis.com

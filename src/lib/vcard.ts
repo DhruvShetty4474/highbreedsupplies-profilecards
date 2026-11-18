@@ -9,7 +9,7 @@ function escapeVCard(value: string) {
 }
 
 /** Build a valid vCard 3.0 payload from a HIGHBREED profile. */
-export function buildVCard(profile: Profile, baseUrl = "https://highbreedsupplies.com") {
+export function buildVCard(profile: Profile, baseUrl = "https://highfis.com") {
   const full = (profile.full_name || profile.username).trim();
   // N is "Last;First;Middle;Prefix;Suffix" — phones use it to sort/display.
   const parts = full.split(/\s+/);

@@ -62,7 +62,7 @@ export default async function DashboardSettingsPage() {
             </a>
           </li>
           <li>
-            <a href="mailto:support@highbreedsupplies.com">Help & Support</a>
+            <a href="mailto:support@highfis.com">Help & Support</a>
           </li>
         </ul>
         <div className="mt-5">

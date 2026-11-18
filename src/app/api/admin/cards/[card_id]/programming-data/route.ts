@@ -34,7 +34,7 @@ export async function GET(_request: Request, { params }: Params) {
     /** Exact URI payload for NFC NDEF URI record */
     nfc_url: card.nfc_url,
     qr_url: card.qr_url,
-    brand_url: "https://highbreedsupplies.com",
+    brand_url: "https://highfis.com",
     write_instructions: {
       ndef_type: "U",
       record: card.nfc_url,

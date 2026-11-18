@@ -8,7 +8,7 @@ export function cn(...inputs: ClassValue[]) {
 export function appUrl(path = "") {
   const base =
     process.env.APP_URL?.replace(/\/$/, "") ||
-    "https://highbreedsupplies.com";
+    "https://highfis.com";
   if (!path) return base;
   return `${base}${path.startsWith("/") ? path : `/${path}`}`;
 }

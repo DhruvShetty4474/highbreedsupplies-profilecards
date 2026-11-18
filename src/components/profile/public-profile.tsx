@@ -159,7 +159,7 @@ export function PublicProfileView({
 
   const website =
     links.find((l) => l.type === "website")?.path ||
-    `https://highbreedsupplies.com/${profile.username}`;
+    `https://highfis.com/${profile.username}`;
 
   const mapsUrl = profile.location
     ? `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(profile.location)}`
