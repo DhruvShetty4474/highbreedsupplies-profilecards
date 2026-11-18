@@ -19,7 +19,7 @@
       "binding": "DB",
       "database_name": "highbreed",
       // Replace with the id printed by `npx wrangler d1 create highbreed`
-      "database_id": "00000000-0000-0000-0000-000000000000",
+      "database_id": "dc8822d5-e79b-4eeb-b4eb-2f808efa7b68",
       "migrations_dir": "migrations"
     }
   ],
