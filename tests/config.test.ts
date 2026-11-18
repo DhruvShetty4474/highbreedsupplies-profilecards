@@ -24,7 +24,10 @@ describe("config", () => {
 
   it("optional services switch off without keys", () => {
     const c = parseConfig({ BETTER_AUTH_SECRET: SECRET, SENTRY_DSN: "" });
-    expect(c.features).toEqual({ media: false, email: false, sentry: false });
+    expect(c.features).toEqual({ media: false, email: false, sentry: false, google: false });
+    expect(() =>
+      parseConfig({ BETTER_AUTH_SECRET: SECRET, GOOGLE_CLIENT_ID: "id-only" })
+    ).toThrow(/GOOGLE_CLIENT_ID and GOOGLE_CLIENT_SECRET/);
     expect(c.MEDIA_QUOTA_MB_PER_USER).toBe(100);
     expect(c.REQUIRE_EMAIL_VERIFICATION).toBe(false);
   });

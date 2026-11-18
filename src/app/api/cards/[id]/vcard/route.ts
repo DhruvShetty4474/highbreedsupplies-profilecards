@@ -1,4 +1,5 @@
 import { fetchProfileById, fetchProfileByUsername } from "@/lib/data";
+import { appUrl } from "@/lib/utils";
 import { buildVCard } from "@/lib/vcard";
 import { NextResponse } from "next/server";
 
@@ -15,14 +16,16 @@ export async function GET(_request: Request, { params }: Params) {
     return NextResponse.json({ error: "Profile not found" }, { status: 404 });
   }
 
-  const vcard = buildVCard(profile);
+  const vcard = buildVCard(profile, appUrl());
   const filename = `${profile.username || "highbreed"}.vcf`;
 
   return new NextResponse(vcard, {
     status: 200,
     headers: {
+      // Served inline: iOS shows the native "Add Contact" sheet straight
+      // away; Android downloads it and offers Open → Contacts.
       "Content-Type": "text/vcard; charset=utf-8",
-      "Content-Disposition": `attachment; filename="${filename}"`,
+      "Content-Disposition": `inline; filename="${filename}"`,
       "Cache-Control": "private, no-store",
     },
   });

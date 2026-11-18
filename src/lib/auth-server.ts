@@ -66,6 +66,26 @@ export function createAuth(db: DB) {
         );
       },
     },
+    // Google sign-in when GOOGLE_CLIENT_ID/SECRET are set. Google has
+    // already verified the email, and the profile is created by the same
+    // user-create hook (role client unless in ADMIN_EMAILS).
+    socialProviders: config.features.google
+      ? {
+          google: {
+            clientId: config.GOOGLE_CLIENT_ID!,
+            clientSecret: config.GOOGLE_CLIENT_SECRET!,
+            prompt: "select_account",
+          },
+        }
+      : undefined,
+    account: {
+      accountLinking: {
+        // Same verified email signing in with Google joins the existing
+        // email/password account instead of failing.
+        enabled: true,
+        trustedProviders: ["google"],
+      },
+    },
     emailVerification: {
       sendOnSignUp: true,
       sendOnSignIn: config.REQUIRE_EMAIL_VERIFICATION,

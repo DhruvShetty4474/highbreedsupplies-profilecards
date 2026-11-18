@@ -1,6 +1,8 @@
+import { getConfig } from "@/config";
+import { GoogleButton } from "@/components/auth/google-button";
 import Link from "next/link";
 import { LoginForm } from "@/components/auth/login-form";
-import { HighbreedWordmark } from "@/components/brand/logo";
+import { HighbreedMark, HighbreedWordmark } from "@/components/brand/logo";
 import { getSessionProfile } from "@/lib/auth";
 import { redirect } from "next/navigation";
 
@@ -9,9 +11,12 @@ export const metadata = { title: "Sign in" };
 export default async function LoginPage({
   searchParams,
 }: {
-  searchParams: Promise<{ next?: string; reset?: string }>;
+  searchParams: Promise<{ next?: string; reset?: string; error?: string }>;
 }) {
-  const { next, reset } = await searchParams;
+  const { next: rawNext, reset, error } = await searchParams;
+  // Only same-site paths (blocks open redirects like //evil.com).
+  const next = rawNext && /^\/(?!\/)/.test(rawNext) ? rawNext : undefined;
+  const google = getConfig().features.google;
   const session = await getSessionProfile();
   if (session) {
     redirect(
@@ -27,13 +32,11 @@ export default async function LoginPage({
         <div className="pointer-events-none absolute inset-0 opacity-40 [background:radial-gradient(700px_400px_at_18%_18%,rgba(240,201,74,0.45),transparent_55%),radial-gradient(520px_320px_at_88%_78%,rgba(11,92,69,0.35),transparent_50%)]" />
         <div className="relative">
           <div className="flex items-center gap-3 text-white">
-            <div className="grid h-11 w-11 place-items-center rounded-2xl bg-white/10 font-display text-lg font-semibold backdrop-blur">
-              hb
-            </div>
+            <HighbreedMark size="sm" className="h-11 w-11 rounded-2xl" />
             <div>
               <p className="font-display text-xl tracking-tight">HIGHBREED</p>
               <p className="text-[10px] uppercase tracking-[0.22em] text-white/60">
-                HighCard Platform
+                Supplies
               </p>
             </div>
           </div>
@@ -79,6 +82,12 @@ export default async function LoginPage({
               applied automatically from the account.
             </p>
             <div className="mt-8">
+              {google ? <GoogleButton next={next || "/dashboard"} /> : null}
+              {error === "google" ? (
+                <p className="mb-3 text-sm text-hb-danger" role="alert">
+                  Google sign-in didn&apos;t complete. Please try again.
+                </p>
+              ) : null}
               <LoginForm
                 nextPath={next}
                 notice={reset ? "Password updated — sign in with your new password." : undefined}

@@ -1,5 +1,7 @@
+import { getConfig } from "@/config";
+import { GoogleButton } from "@/components/auth/google-button";
 import { SignupForm } from "@/components/auth/signup-form";
-import { HighbreedWordmark } from "@/components/brand/logo";
+import { HighbreedMark, HighbreedWordmark } from "@/components/brand/logo";
 import { getSessionProfile } from "@/lib/auth";
 import Link from "next/link";
 import { redirect } from "next/navigation";
@@ -12,6 +14,8 @@ export default async function RegisterPage({
   searchParams: Promise<{ card?: string; next?: string }>;
 }) {
   const sp = await searchParams;
+  // Only same-site paths (blocks open redirects like //evil.com).
+  if (sp.next && !/^\/(?!\/)/.test(sp.next)) sp.next = undefined;
   const session = await getSessionProfile();
   if (session) {
     redirect(
@@ -30,13 +34,11 @@ export default async function RegisterPage({
         <div className="pointer-events-none absolute inset-0 opacity-40 [background:radial-gradient(700px_400px_at_18%_18%,rgba(240,201,74,0.45),transparent_55%),radial-gradient(520px_320px_at_88%_78%,rgba(11,92,69,0.35),transparent_50%)]" />
         <div className="relative">
           <div className="flex items-center gap-3 text-white">
-            <div className="grid h-11 w-11 place-items-center rounded-2xl bg-white/10 font-display text-lg font-semibold backdrop-blur">
-              hb
-            </div>
+            <HighbreedMark size="sm" className="h-11 w-11 rounded-2xl" />
             <div>
               <p className="font-display text-xl tracking-tight">HIGHBREED</p>
               <p className="text-[10px] uppercase tracking-[0.22em] text-white/60">
-                HighCard Platform
+                Supplies
               </p>
             </div>
           </div>
@@ -81,6 +83,9 @@ export default async function RegisterPage({
               and will see everyone under Customers.
             </p>
             <div className="mt-8">
+              {getConfig().features.google ? (
+                <GoogleButton next={sp.card ? `/c/${encodeURIComponent(sp.card)}` : "/dashboard"} />
+              ) : null}
               <SignupForm cardToken={sp.card} />
             </div>
           </div>

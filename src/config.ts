@@ -49,12 +49,16 @@ const schema = z
       .default("false")
       .transform((v) => v === "true"),
 
+    // --- Google sign-in (optional) ------------------------------------------
+    GOOGLE_CLIENT_ID: optionalString,
+    GOOGLE_CLIENT_SECRET: optionalString,
+
     // --- Monitoring (optional) ----------------------------------------------
     SENTRY_DSN: z.string().url().optional().or(z.literal("").transform(() => undefined)),
   });
 
 export type AppConfig = z.output<typeof schema> & {
-  features: { media: boolean; email: boolean; sentry: boolean };
+  features: { media: boolean; email: boolean; sentry: boolean; google: boolean };
   adminEmails: string[];
 };
 
@@ -81,6 +85,10 @@ export function parseConfig(env: Record<string, string | undefined>): AppConfig 
     }
   }
 
+  if (Boolean(env.GOOGLE_CLIENT_ID?.trim()) !== Boolean(env.GOOGLE_CLIENT_SECRET?.trim())) {
+    lines.push("  • GOOGLE_CLIENT_ID and GOOGLE_CLIENT_SECRET must be set together");
+  }
+
   if (!parsed.success || lines.length) {
     throw new ConfigError(
       `Invalid environment configuration:\n${lines.join("\n")}\n` +
@@ -100,6 +108,7 @@ export function parseConfig(env: Record<string, string | undefined>): AppConfig 
       media: Boolean(c.R2_ACCOUNT_ID),
       email: Boolean(c.RESEND_API_KEY),
       sentry: Boolean(c.SENTRY_DSN),
+      google: Boolean(c.GOOGLE_CLIENT_ID && c.GOOGLE_CLIENT_SECRET),
     },
   };
 }
@@ -123,6 +132,8 @@ export function getConfig(): AppConfig {
     env.MEDIA_MAX_IMAGE_MB,
     env.MEDIA_MAX_VIDEO_MB,
     env.REQUIRE_EMAIL_VERIFICATION,
+    env.GOOGLE_CLIENT_ID,
+    env.GOOGLE_CLIENT_SECRET,
   ].join("|");
   if (cache?.key !== key) cache = { key, config: parseConfig(env) };
   return cache.config;
