@@ -1,5 +1,7 @@
 # HIGHBREED — HighCard / NTAG213 NFC Platform
 
+> **Picking this up later?** Start with [REMAINING.md](REMAINING.md): current status, go-live steps and the feature backlog.
+
 Linq-class digital business cards with physical NFC/QR HighCards, dual role dashboards, and visitor lead capture.
 
 ## Quick start (local, Cloudflare D1)
