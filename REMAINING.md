@@ -16,7 +16,10 @@ Last updated: 2026-11-18.
 | Cloudflare account | `highbreedworkflow1360@gmail.com` · Account ID `4244994a3730fd21882bb81aab058375` |
 | D1 database | `highbreed` (APAC) · ID `dc8822d5-e79b-4eeb-b4eb-2f808efa7b68` · all migrations applied |
 | Worker | `highbreed`, created. **Not reachable yet** (no domain attached) |
-| Secrets set | `BETTER_AUTH_SECRET`, `ADMIN_EMAILS` (= highbreedworkflow1360@gmail.com, finorex59@gmail.com) |
+| Secrets set | `BETTER_AUTH_SECRET`, `SUPER_ADMIN_EMAILS` (private — never write it in the repo) |
+| Live (test) | https://highbreed.highbreedsupplies.workers.dev |
+| Accounts | Admin `highbreedworkflow1360@gmail.com` and a hidden super admin, both created with `scripts/create-account.ts` |
+| Roles | **superadmin** (hidden; only one who can create/remove admins in Admin → Admins) · admin · manager · client. Nobody becomes admin by signing up. |
 | Domain | **`highfis.com`**, being moved from Hostinger to Cloudflare (step 1 below) |
 | Media (R2) | Deliberately postponed; uploads show "Media storage is not configured" |
 
