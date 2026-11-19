@@ -2,6 +2,7 @@ import { desc, eq } from "drizzle-orm";
 import { Badge } from "@/components/ui/badge";
 import { getDb, schema } from "@/db";
 import { requireManagerPage } from "@/lib/auth";
+import { isAdminRole } from "@/lib/roles";
 
 export const metadata = { title: "Manager · Customers" };
 
@@ -24,7 +25,7 @@ export default async function ManagerCustomersPage() {
     .limit(500);
   // Admins see every customer; managers only the ones they referred.
   const rows =
-    me.role === "admin"
+    isAdminRole(me.role)
       ? await base.where(eq(schema.profiles.role, "client"))
       : await base.where(eq(schema.profiles.referred_by, me.user_id));
 

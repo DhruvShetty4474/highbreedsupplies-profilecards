@@ -204,7 +204,7 @@ export async function issueCashCode(
 ): Promise<CashCodeResult> {
   const order = await db.select().from(schema.orders).where(eq(schema.orders.id, orderId)).get();
   if (!order) return { ok: false, reason: "not_found" };
-  if (actor.role !== "admin" && order.manager_id !== actor.user_id) {
+  if (actor.role !== "admin" && actor.role !== "superadmin" && order.manager_id !== actor.user_id) {
     return { ok: false, reason: "forbidden" };
   }
   if (order.status !== "PENDING") return { ok: false, reason: "not_pending" };

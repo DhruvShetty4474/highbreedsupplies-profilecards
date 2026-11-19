@@ -41,7 +41,8 @@ export async function fetchProfileByUsername(
     .from(schema.profiles)
     .where(eq(schema.profiles.username, username.toLowerCase()))
     .get();
-  return row ? toProfile(row) : null;
+  // The super admin has no public page.
+  return row && row.role !== "superadmin" ? toProfile(row) : null;
 }
 
 export async function fetchProfileById(userId: string): Promise<Profile | null> {

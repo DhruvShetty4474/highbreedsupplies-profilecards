@@ -77,14 +77,17 @@ export async function registerAndSignIn(a: NewAccount, headers: Headers) {
  * Admin-created account. Does NOT create a session, so the admin's own
  * cookie is left untouched.
  */
-export async function createAccountAsAdmin(a: NewAccount) {
+export async function createAccountAsAdmin(
+  a: NewAccount,
+  opts: { emailVerified?: boolean } = {}
+) {
   await assertUsernameFree(a.username);
   await assertEmailFree(a.email);
   const ctx = await getAuth().$context;
   const created = await ctx.internalAdapter.createUser({
     email: a.email,
     name: a.full_name,
-    emailVerified: false,
+    emailVerified: opts.emailVerified ?? false,
   }, { method: "admin" });
   await ctx.internalAdapter.linkAccount({
     userId: created.id,

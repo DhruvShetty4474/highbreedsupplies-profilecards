@@ -1,4 +1,4 @@
-export type AppRole = "admin" | "manager" | "client";
+export type AppRole = "superadmin" | "admin" | "manager" | "client";
 export type CardStatus = "UNCLAIMED" | "RESERVED" | "ACTIVE" | "BLOCKED";
 export type ProgrammingStatus = "UNPROGRAMMED" | "PROGRAMMED" | "FAILED";
 

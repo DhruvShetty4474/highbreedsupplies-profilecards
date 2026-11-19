@@ -4,6 +4,7 @@ import { fetchProfileById } from "@/lib/data";
 import { appUrl } from "@/lib/utils";
 import Link from "next/link";
 import { RoleToggle } from "@/components/admin/role-toggle";
+import { isAdminRole } from "@/lib/roles";
 import { notFound } from "next/navigation";
 
 export const metadata = { title: "Edit customer" };
@@ -14,7 +15,7 @@ export default async function AdminEditCustomerPage({ params }: Props) {
   await requireAdminPage();
   const { userId } = await params;
   const profile = await fetchProfileById(userId);
-  if (!profile || profile.role === "admin") notFound();
+  if (!profile || isAdminRole(profile.role)) notFound();
 
   return (
     <div>

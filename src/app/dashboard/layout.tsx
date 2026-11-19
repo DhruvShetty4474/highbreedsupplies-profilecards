@@ -6,6 +6,7 @@ import {
 import { getSessionProfile } from "@/lib/auth";
 import Link from "next/link";
 import { redirect } from "next/navigation";
+import { isAdminRole } from "@/lib/roles";
 
 const items: SidebarItem[] = [
   {
@@ -74,12 +75,12 @@ export default async function DashboardLayout({
                 @{profile.username}
               </p>
             </div>
-            {profile.role === "manager" || profile.role === "admin" ? (
+            {profile.role === "manager" || isAdminRole(profile.role) ? (
               <Link href="/manager" className="block text-xs font-semibold text-hb-mint">
                 Open Manager Dashboard →
               </Link>
             ) : null}
-            {profile.role === "admin" ? (
+            {isAdminRole(profile.role) ? (
               <Link
                 href="/admin"
                 className="block text-xs font-semibold text-hb-mint"

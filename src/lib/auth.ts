@@ -3,6 +3,7 @@ import { headers } from "next/headers";
 import { redirect } from "next/navigation";
 import { getAuth } from "@/lib/auth-server";
 import { fetchProfileById } from "@/lib/data";
+import { isAdminRole } from "@/lib/roles";
 import type { Profile } from "@/lib/types";
 
 export class AuthError extends Error {
@@ -35,7 +36,7 @@ export async function requireUser(): Promise<Profile> {
 
 export async function requireAdmin(): Promise<Profile> {
   const profile = await requireUser();
-  if (profile.role !== "admin") throw new AuthError(403, "Admin access required");
+  if (!isAdminRole(profile.role)) throw new AuthError(403, "Admin access required");
   return profile;
 }
 
@@ -46,14 +47,14 @@ export async function requireAdmin(): Promise<Profile> {
 export async function requireAdminPage(): Promise<Profile> {
   const profile = await getSessionProfile();
   if (!profile) redirect("/login?next=/admin");
-  if (profile.role !== "admin") redirect("/dashboard");
+  if (!isAdminRole(profile.role)) redirect("/dashboard");
   return profile;
 }
 
 /** Managers (and admins, who can do everything a manager can). */
 export async function requireManager(): Promise<Profile> {
   const profile = await requireUser();
-  if (profile.role !== "manager" && profile.role !== "admin") {
+  if (profile.role !== "manager" && !isAdminRole(profile.role)) {
     throw new AuthError(403, "Manager access required");
   }
   return profile;
@@ -63,6 +64,20 @@ export async function requireManager(): Promise<Profile> {
 export async function requireManagerPage(): Promise<Profile> {
   const profile = await getSessionProfile();
   if (!profile) redirect("/login?next=/manager");
-  if (profile.role !== "manager" && profile.role !== "admin") redirect("/dashboard");
+  if (profile.role !== "manager" && !isAdminRole(profile.role)) redirect("/dashboard");
+  return profile;
+}
+
+/** Only the super admin may create or remove admins. */
+export async function requireSuperAdmin(): Promise<Profile> {
+  const profile = await requireUser();
+  if (profile.role !== "superadmin") throw new AuthError(403, "Super admin access required");
+  return profile;
+}
+
+export async function requireSuperAdminPage(): Promise<Profile> {
+  const profile = await getSessionProfile();
+  if (!profile) redirect("/login?next=/admin");
+  if (profile.role !== "superadmin") redirect("/admin");
   return profile;
 }

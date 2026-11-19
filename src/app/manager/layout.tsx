@@ -3,6 +3,7 @@ import { SaasSidebar, type SidebarItem } from "@/components/layout/saas-sidebar"
 import { getSessionProfile } from "@/lib/auth";
 import Link from "next/link";
 import { redirect } from "next/navigation";
+import { isAdminRole } from "@/lib/roles";
 
 const items: SidebarItem[] = [
   {
@@ -25,7 +26,7 @@ export const dynamic = "force-dynamic";
 export default async function ManagerLayout({ children }: { children: React.ReactNode }) {
   const profile = await getSessionProfile();
   if (!profile) redirect("/login?next=/manager");
-  if (profile.role !== "manager" && profile.role !== "admin") redirect("/dashboard");
+  if (profile.role !== "manager" && !isAdminRole(profile.role)) redirect("/dashboard");
 
   return (
     <div className="min-h-dvh bg-hb-fog">
@@ -38,13 +39,13 @@ export default async function ManagerLayout({ children }: { children: React.Reac
             <div>
               <p className="truncate text-sm font-semibold text-white">{profile.full_name}</p>
               <p className="text-xs text-white/55">
-                {profile.role === "admin" ? "Administrator (all managers)" : "Manager"}
+                {isAdminRole(profile.role) ? "Administrator (all managers)" : "Manager"}
               </p>
             </div>
             <Link href="/dashboard" className="block text-xs font-semibold text-hb-mint">
               My own card & profile →
             </Link>
-            {profile.role === "admin" ? (
+            {isAdminRole(profile.role) ? (
               <Link href="/admin" className="block text-xs font-semibold text-hb-mint">
                 Admin Console →
               </Link>

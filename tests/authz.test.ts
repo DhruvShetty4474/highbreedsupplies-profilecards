@@ -128,9 +128,11 @@ describe("role escalation", () => {
     expect(res.status).toBe(403);
   });
 
-  it("only ADMIN_EMAILS become admin at signup; login reports role from the DB", async () => {
+  it("only the SUPER_ADMIN_EMAILS address becomes super admin; nobody else gets admin by signing up", async () => {
     await signedInAdmin();
-    expect(await roleFor(db, "boss@example.com")).toBe("admin");
-    expect((await login("boss@example.com")).json.role).toBe("admin");
+    expect(await roleFor(db, "boss@example.com")).toBe("superadmin");
+    expect((await login("boss@example.com")).json.role).toBe("superadmin");
+    await registerUser({ email: "wannabe@example.com", username: "wannabe" });
+    expect(await roleFor(db, "wannabe@example.com")).toBe("client");
   });
 });

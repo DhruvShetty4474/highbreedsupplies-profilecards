@@ -6,6 +6,7 @@ import { formatInr, priceBreakup } from "@/lib/orders";
 import { getSettings } from "@/lib/settings";
 import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
+import { isAdminRole } from "@/lib/roles";
 
 export const dynamic = "force-dynamic";
 export const metadata = { title: "Invoice" };
@@ -29,7 +30,7 @@ export default async function InvoicePage({ params }: { params: Promise<{ id: st
   const order = await db.select().from(schema.orders).where(eq(schema.orders.id, id)).get();
   const allowed =
     order &&
-    (viewer.role === "admin" ||
+    (isAdminRole(viewer.role) ||
       order.user_id === viewer.user_id ||
       order.manager_id === viewer.user_id);
   if (!order || !allowed || order.status !== "PAID" || !order.invoice_no) notFound();

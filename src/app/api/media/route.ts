@@ -6,6 +6,7 @@ import { AuthError, requireUser } from "@/lib/auth";
 import { fetchProfileById } from "@/lib/data";
 import { collectGarbage, mediaLimits, MediaError, startUpload, usedBytes } from "@/lib/media";
 import { getMediaStore } from "@/lib/r2";
+import { isAdminRole } from "@/lib/roles";
 
 const bodySchema = z.object({
   kind: z.enum(["avatar", "banner", "image", "video"]),
@@ -24,7 +25,7 @@ function storeOr503() {
 async function targetUser(requested: string | null | undefined) {
   const session = await requireUser();
   if (!requested || requested === session.user_id) return session.user_id;
-  if (session.role !== "admin") throw new AuthError(403);
+  if (!isAdminRole(session.role)) throw new AuthError(403);
   return requested;
 }
 

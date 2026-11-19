@@ -11,9 +11,13 @@ import { removeMedia } from "@/lib/media";
 import { getMediaStore } from "@/lib/r2";
 import { RESERVED_USERNAMES } from "@/lib/utils";
 
-/** Emails listed in ADMIN_EMAILS (comma-separated) become admins at signup. */
-export function isAdminEmail(email: string) {
-  return getConfig().adminEmails.includes(email.trim().toLowerCase());
+/**
+ * Emails in the SUPER_ADMIN_EMAILS secret become the hidden super admin at
+ * signup. Everyone else starts as a client; only the super admin can make
+ * admins (Admin → Admins).
+ */
+export function isSuperAdminEmail(email: string) {
+  return getConfig().superAdminEmails.includes(email.trim().toLowerCase());
 }
 
 /** Derive a free, valid username from an email local-part. */
@@ -70,7 +74,7 @@ export function createAuth(db: DB) {
     },
     // Google sign-in when GOOGLE_CLIENT_ID/SECRET are set. Google has
     // already verified the email, and the profile is created by the same
-    // user-create hook (role client unless in ADMIN_EMAILS).
+    // user-create hook (role client unless it's the super admin's email).
     socialProviders: config.features.google
       ? {
           google: {
@@ -153,7 +157,7 @@ export function createAuth(db: DB) {
                 username,
                 full_name: u.name ?? "",
                 email: u.email,
-                role: isAdminEmail(u.email) ? "admin" : "client",
+                role: isSuperAdminEmail(u.email) ? "superadmin" : "client",
               })
               .onConflictDoNothing();
           },

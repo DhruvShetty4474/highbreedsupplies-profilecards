@@ -8,6 +8,7 @@ type Params = { params: Promise<{ id: string }> };
 export async function GET(_request: Request, { params }: Params) {
   const { id } = await params;
   let profile = /^[0-9A-Za-z]{20,}$/.test(id) ? await fetchProfileById(id) : null;
+  if (profile?.role === "superadmin") profile = null;
   if (!profile) {
     profile = await fetchProfileByUsername(id);
   }

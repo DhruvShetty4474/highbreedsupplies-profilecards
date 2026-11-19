@@ -5,6 +5,7 @@ import { getDb, schema } from "@/db";
 import { AuthError, requireUser } from "@/lib/auth";
 import { errorResponse } from "@/lib/api";
 import { fetchSharePrefs } from "@/lib/data";
+import { isAdminRole } from "@/lib/roles";
 
 const bodySchema = z.object({
   user_id: z.string().min(1),
@@ -16,7 +17,7 @@ export async function GET(request: Request) {
   try {
     const session = await requireUser();
     const userId = new URL(request.url).searchParams.get("user_id") || session.user_id;
-    if (session.role !== "admin" && userId !== session.user_id) throw new AuthError(403);
+    if (!isAdminRole(session.role) && userId !== session.user_id) throw new AuthError(403);
     return NextResponse.json(await fetchSharePrefs(userId));
   } catch (err) {
     return errorResponse(err);
@@ -30,7 +31,7 @@ export async function PATCH(request: Request) {
     if (!parsed.success) {
       return NextResponse.json({ error: "Invalid payload" }, { status: 400 });
     }
-    if (session.role !== "admin" && parsed.data.user_id !== session.user_id) {
+    if (!isAdminRole(session.role) && parsed.data.user_id !== session.user_id) {
       throw new AuthError(403);
     }
 

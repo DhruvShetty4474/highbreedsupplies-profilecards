@@ -5,6 +5,7 @@ import { requireManagerPage } from "@/lib/auth";
 import { fetchOrdersForManager, formatInr } from "@/lib/orders";
 import { releaseExpiredReservations } from "@/lib/cards";
 import Link from "next/link";
+import { isAdminRole } from "@/lib/roles";
 
 export const metadata = { title: "Manager · Payments" };
 
@@ -24,7 +25,7 @@ export default async function ManagerPaymentsPage() {
   const me = await requireManagerPage();
   await releaseExpiredReservations(getDb());
   // Admins see every manager's orders.
-  const rows = await fetchOrdersForManager(getDb(), me.role === "admin" ? null : me.user_id);
+  const rows = await fetchOrdersForManager(getDb(), isAdminRole(me.role) ? null : me.user_id);
 
   const cashWaiting = rows.filter((r) => r.order.status === "PENDING" && r.order.method === "CASH");
   const otherPending = rows.filter((r) => r.order.status === "PENDING" && r.order.method !== "CASH");

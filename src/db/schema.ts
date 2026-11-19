@@ -133,7 +133,7 @@ export const profiles = sqliteTable(
       accent?: string;
       surface?: string;
     }>(),
-    role: text("role", { enum: ["admin", "manager", "client"] })
+    role: text("role", { enum: ["superadmin", "admin", "manager", "client"] })
       .notNull()
       .default("client"),
     /** Manager who referred this customer (set when their card is reserved). */

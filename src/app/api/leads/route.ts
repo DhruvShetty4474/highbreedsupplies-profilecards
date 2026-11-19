@@ -34,7 +34,8 @@ export async function POST(request: Request) {
     );
   }
 
-  if (!(await fetchProfileById(parsed.data.cardholder_user_id))) {
+  const holder = await fetchProfileById(parsed.data.cardholder_user_id);
+  if (!holder || holder.role === "superadmin") {
     return NextResponse.json({ error: "Profile not found" }, { status: 404 });
   }
 

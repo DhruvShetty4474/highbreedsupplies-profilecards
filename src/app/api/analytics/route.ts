@@ -5,6 +5,7 @@ import { requireUser } from "@/lib/auth";
 import { getDb } from "@/db";
 import { bumpStat, fetchStats } from "@/lib/data";
 import { clientIp, hitRateLimit, LIMITS } from "@/lib/rate-limit";
+import { isAdminRole } from "@/lib/roles";
 
 const eventSchema = z.object({
   user_id: z.string().min(1),
@@ -36,7 +37,7 @@ export async function GET(request: Request) {
     const profile = await requireUser();
     const requested = new URL(request.url).searchParams.get("user_id");
     const userId =
-      profile.role === "admin" && requested ? requested : profile.user_id;
+      isAdminRole(profile.role) && requested ? requested : profile.user_id;
     return NextResponse.json(await fetchStats(userId));
   } catch (err) {
     return errorResponse(err);

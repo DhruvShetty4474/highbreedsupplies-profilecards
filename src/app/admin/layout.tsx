@@ -6,6 +6,7 @@ import {
 import { getSessionProfile } from "@/lib/auth";
 import Link from "next/link";
 import { redirect } from "next/navigation";
+import { isAdminRole } from "@/lib/roles";
 
 const items: SidebarItem[] = [
   {
@@ -57,14 +58,27 @@ export default async function AdminLayout({
 }) {
   const profile = await getSessionProfile();
   if (!profile) redirect("/login?next=/admin");
-  if (profile.role !== "admin") redirect("/dashboard");
+  if (!isAdminRole(profile.role)) redirect("/dashboard");
 
   return (
     <div className="min-h-dvh bg-hb-fog">
       <SaasSidebar
         title="Admin"
         subtitle="Provision HighCards, create customers, and program NTAG213 chips."
-        items={items}
+        items={
+          profile.role === "superadmin"
+            ? [
+                ...items.slice(0, -1),
+                {
+                  href: "/admin/admins",
+                  label: "Admins",
+                  icon: "users",
+                  description: "Create & remove admins",
+                },
+                items[items.length - 1],
+              ]
+            : items
+        }
         footer={
           <div className="space-y-3">
             <div>

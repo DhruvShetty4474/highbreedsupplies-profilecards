@@ -1,7 +1,8 @@
 #!/usr/bin/env node
 /**
  * Promote / demote an existing account. Roles are only ever changed here,
- * by the seed script, or via ADMIN_EMAILS at signup — never by an API.
+ * by the seed script, or by the super admin in Admin → Admins. Never touches
+ * the super admin. Operator tool: needs Cloudflare access to the database.
  *
  *   npm run admin:grant -- someone@example.com            # local D1
  *   npm run admin:grant -- someone@example.com --remote   # production D1
@@ -17,7 +18,7 @@ if (!email || !/^[^\s@']+@[^\s@']+$/.test(email)) {
 }
 const role = args.includes("--revoke") ? "client" : "admin";
 const where = args.includes("--remote") ? "--remote" : "--local";
-const sql = `UPDATE profiles SET role='${role}' WHERE user_id=(SELECT id FROM user WHERE email='${email.toLowerCase()}');`;
+const sql = `UPDATE profiles SET role='${role}' WHERE role <> 'superadmin' AND user_id=(SELECT id FROM user WHERE email='${email.toLowerCase()}');`;
 execFileSync("npx", ["wrangler", "d1", "execute", "highbreed", where, "--command", sql], {
   stdio: "inherit",
   shell: process.platform === "win32",

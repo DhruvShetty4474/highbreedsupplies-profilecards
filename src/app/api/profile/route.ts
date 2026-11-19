@@ -14,6 +14,7 @@ import {
 import { getMediaStore, mediaPublicBase } from "@/lib/r2";
 import type { ContentBlock, ProfileLayout, SocialLink } from "@/lib/types";
 import { z } from "zod";
+import { isAdminRole } from "@/lib/roles";
 
 const socialSchema = z.object({
   id: z.string(),
@@ -76,14 +77,14 @@ export async function PATCH(request: Request) {
     }
 
     if (
-      session.role !== "admin" &&
+      !isAdminRole(session.role) &&
       parsed.data.user_id &&
       parsed.data.user_id !== session.user_id
     ) {
       throw new AuthError(403);
     }
     const targetUserId =
-      session.role === "admin" && parsed.data.user_id
+      isAdminRole(session.role) && parsed.data.user_id
         ? parsed.data.user_id
         : session.user_id;
 

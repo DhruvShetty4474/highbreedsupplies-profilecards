@@ -44,7 +44,7 @@ export async function roleFor(db: DB, email: string) {
   return p?.role;
 }
 
-/** Registers a fresh admin (via ADMIN_EMAILS) and leaves them signed in. */
+/** Registers the super admin (SUPER_ADMIN_EMAILS) and leaves them signed in. */
 export async function signedInAdmin() {
   const u = await registerUser({ email: "boss@example.com", username: "the_boss" });
   return u;

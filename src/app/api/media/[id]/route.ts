@@ -5,13 +5,14 @@ import { errorResponse } from "@/lib/api";
 import { requireUser } from "@/lib/auth";
 import { completeUpload, MediaError, removeMedia } from "@/lib/media";
 import { getMediaStore } from "@/lib/r2";
+import { isAdminRole } from "@/lib/roles";
 
 type Params = { params: Promise<{ id: string }> };
 
 async function ownerScope(id: string) {
   const session = await requireUser();
   const row = await getDb().select().from(schema.media).where(eq(schema.media.id, id)).get();
-  if (!row || (row.user_id !== session.user_id && session.role !== "admin")) {
+  if (!row || (row.user_id !== session.user_id && !isAdminRole(session.role))) {
     throw new MediaError(404, "Media not found");
   }
   const store = getMediaStore();

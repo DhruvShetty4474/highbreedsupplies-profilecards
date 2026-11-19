@@ -32,7 +32,8 @@ const schema = z
     TRUSTED_ORIGINS: optionalString,
 
     // --- Roles --------------------------------------------------------------
-    ADMIN_EMAILS: optionalString,
+    /** SECRET. Who becomes the hidden super admin at signup (comma-separated). */
+    SUPER_ADMIN_EMAILS: optionalString,
 
     // --- R2 media (optional as a group) -------------------------------------
     R2_ACCOUNT_ID: optionalString,
@@ -85,7 +86,7 @@ export type AppConfig = z.output<typeof schema> & {
     google: boolean;
     razorpay: boolean;
   };
-  adminEmails: string[];
+  superAdminEmails: string[];
   trustedOrigins: string[];
 };
 
@@ -143,7 +144,7 @@ export function parseConfig(env: Record<string, string | undefined>): AppConfig 
       .split(",")
       .map((o) => o.trim().replace(/\/$/, ""))
       .filter(Boolean),
-    adminEmails: (c.ADMIN_EMAILS ?? "")
+    superAdminEmails: (c.SUPER_ADMIN_EMAILS ?? "")
       .split(",")
       .map((e) => e.trim().toLowerCase())
       .filter(Boolean),
@@ -166,7 +167,7 @@ export function getConfig(): AppConfig {
   const key = [
     env.APP_URL,
     env.BETTER_AUTH_SECRET,
-    env.ADMIN_EMAILS,
+    env.SUPER_ADMIN_EMAILS,
     env.R2_ACCOUNT_ID,
     env.R2_BUCKET_NAME,
     env.R2_PUBLIC_URL,

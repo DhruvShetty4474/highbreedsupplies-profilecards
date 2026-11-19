@@ -19,7 +19,7 @@ export default defineConfig({
     env: {
       APP_URL: "http://localhost:3000",
       BETTER_AUTH_SECRET: "test-secret-test-secret-test-secret-123",
-      ADMIN_EMAILS: "boss@example.com",
+      SUPER_ADMIN_EMAILS: "boss@example.com",
       MEDIA_MAX_IMAGE_MB: "5",
       MEDIA_MAX_VIDEO_MB: "50",
       MEDIA_QUOTA_MB_PER_USER: "10",
