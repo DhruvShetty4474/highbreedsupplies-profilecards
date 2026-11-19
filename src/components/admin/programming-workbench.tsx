@@ -13,6 +13,14 @@ export function ProgrammingWorkbench({ cards }: { cards: Card[] }) {
   const [readback, setReadback] = useState("");
   const [message, setMessage] = useState<string | null>(null);
   const [pending, setPending] = useState(false);
+  const [copied, setCopied] = useState(false);
+
+  async function copyUrl() {
+    if (!selected) return;
+    await navigator.clipboard.writeText(selected.nfc_url).catch(() => undefined);
+    setCopied(true);
+    window.setTimeout(() => setCopied(false), 1500);
+  }
 
   const selected = useMemo(
     () => cards.find((c) => c.card_id === cardId),
@@ -94,8 +102,30 @@ export function ProgrammingWorkbench({ cards }: { cards: Card[] }) {
           </p>
         </div>
 
+        {selected ? (
+          <div className="grid gap-3 rounded-2xl bg-hb-mist/70 p-4 text-sm sm:grid-cols-[1fr_auto]">
+            <div className="min-w-0">
+              <p className="text-xs font-semibold uppercase tracking-[0.14em] text-hb-leaf">
+                Link to write on the chip
+              </p>
+              <p className="mt-1 break-all font-mono text-hb-ink">{selected.nfc_url}</p>
+            </div>
+            <Button type="button" variant="outline" onClick={copyUrl} className="self-start">
+              {copied ? "Copied ✓" : "Copy link"}
+            </Button>
+            <div>
+              <p className="text-xs font-semibold uppercase tracking-[0.14em] text-hb-leaf">
+                Activation code (print inside the packaging)
+              </p>
+              <p className="mt-1 font-mono text-lg tracking-[0.2em] text-hb-ink">
+                {selected.activation_code ?? "—"}
+              </p>
+            </div>
+          </div>
+        ) : null}
+
         <Button onClick={loadProgrammingData} disabled={!cardId || pending}>
-          Fetch programming JSON
+          Show full programming data (JSON)
         </Button>
 
         {payload ? (
@@ -108,7 +138,7 @@ export function ProgrammingWorkbench({ cards }: { cards: Card[] }) {
           label="NFC read-back payload"
           value={readback}
           onChange={(e) => setReadback(e.target.value)}
-          hint="Paste the URI returned by the writer after programming"
+          hint="Tap the card with your writer app's Read, then paste the URL it shows"
         />
 
         <Button
