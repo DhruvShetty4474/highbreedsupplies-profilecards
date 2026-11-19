@@ -30,6 +30,9 @@
   // ...) are set with `npx wrangler secret put NAME` — never commit them.
   "vars": {
     "APP_URL": "https://highfis.com",
+    // Lets the workers.dev test address sign in before highfis.com is live.
+    // Remove once the custom domain routes are enabled.
+    "TRUSTED_ORIGINS": "https://highbreed.highbreedsupplies.workers.dev",
     "R2_BUCKET_NAME": "highbreed-media",
     "R2_PUBLIC_URL": "https://media.highfis.com",
     "MEDIA_MAX_IMAGE_MB": "5",
