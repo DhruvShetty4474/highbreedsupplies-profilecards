@@ -20,6 +20,8 @@ export type ActivationProps = {
   prefill: { name: string; email: string; phone: string };
   /** An existing PENDING order waiting for the manager's cash code. */
   pendingCashOrderId: string | null;
+  /** Date the unpaid reservation runs out, e.g. "26 Nov". */
+  reservedUntil?: string | null;
 };
 
 type RazorpayOptions = Record<string, unknown> & {
@@ -95,13 +97,14 @@ function CodeStep({ token }: ActivationProps) {
     <form className="space-y-5" onSubmit={onSubmit}>
       <StepHeader
         n={1}
-        title="Enter your card code"
-        text="Find the code printed on your HighCard (it starts with HB, e.g. HB000123). This proves the card is in your hands."
+        title="Enter your activation code"
+        text="Find the 6-character activation code printed inside your HighCard's packaging (e.g. K7P2QX). It proves the card is yours."
       />
       <Input
         name="code"
-        label="Card code"
-        placeholder="HB000123"
+        label="Activation code"
+        placeholder="K7P2QX"
+        maxLength={10}
         autoCapitalize="characters"
         autoComplete="off"
         className="text-center text-xl uppercase tracking-[0.3em]"
@@ -260,6 +263,11 @@ function PayStep(props: ActivationProps) {
           title="Payment"
           text="Fill in your billing details. Your invoice is generated as soon as the payment is confirmed."
         />
+        {props.reservedUntil ? (
+          <p className="rounded-xl bg-amber-50 px-4 py-2 text-xs text-amber-900">
+            Your card is held for you until {props.reservedUntil}. If it isn&apos;t paid by then, it is released.
+          </p>
+        ) : null}
 
         <div className="rounded-2xl border border-hb-sand/80 bg-hb-fog/60 p-4 text-sm">
           {managerName ? (

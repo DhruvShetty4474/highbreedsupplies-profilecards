@@ -272,7 +272,7 @@ describe("block / unblock + CSV", () => {
     const { cards } = await createBatch(db, { quantity: 3, label: "B", createdBy: null, baseUrl: BASE });
     await ownerOf(cards[0].public_token, "has_card");
     const waiting = await registerUser({ username: "not_paid" });
-    await reserveCard(db, cards[2].public_token, await userIdFor(db, waiting.email), cards[2].card_id);
+    await reserveCard(db, cards[2].public_token, await userIdFor(db, waiting.email), cards[2].activation_code);
     signOutBrowser();
     await signedInAdmin();
 
@@ -294,9 +294,9 @@ describe("block / unblock + CSV", () => {
     const res = await exportRoute(req(`/x`), params({ batch_id: batchId }));
     expect(res.headers.get("content-type")).toContain("text/csv");
     const lines = (await res.text()).trim().split("\r\n");
-    expect(lines[0]).toBe("card_id,token,nfc_url,qr_url,status,programming_status");
+    expect(lines[0]).toBe("card_id,activation_code,token,nfc_url,qr_url,status,programming_status");
     expect(lines[1]).toBe(
-      `${cards[0].card_id},${cards[0].public_token},${cards[0].nfc_url},${cards[0].qr_url},UNCLAIMED,UNPROGRAMMED`
+      `${cards[0].card_id},${cards[0].activation_code},${cards[0].public_token},${cards[0].nfc_url},${cards[0].qr_url},UNCLAIMED,UNPROGRAMMED`
     );
     expect(cardsToCsv([{ ...(await cardRow(cards[0].card_id)), nfc_url: 'a,"b"' }])).toContain('"a,""b"""');
   });

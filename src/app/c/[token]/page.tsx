@@ -4,7 +4,8 @@ import { getSessionProfile } from "@/lib/auth";
 import { fetchCardByToken, fetchProfileById } from "@/lib/data";
 import { Hourglass, ShieldAlert } from "lucide-react";
 import { notFound, redirect } from "next/navigation";
-import { resolveCardView, TOKEN_RE } from "@/lib/cards";
+import { releaseCard, resolveCardView, TOKEN_RE } from "@/lib/cards";
+import { getDb } from "@/db";
 
 export const dynamic = "force-dynamic";
 
@@ -26,7 +27,11 @@ function PublicCardShell({ children }: { children: React.ReactNode }) {
 
 export default async function CardTokenRouterPage({ params }: Props) {
   const { token } = await params;
-  const card = TOKEN_RE.test(token) ? await fetchCardByToken(token) : null;
+  let card = TOKEN_RE.test(token) ? await fetchCardByToken(token) : null;
+  // An unpaid reservation that ran out frees the card for whoever scans it.
+  if (card?.status === "RESERVED" && (await releaseCard(getDb(), card.card_id, { onlyIfExpired: true }))) {
+    card = await fetchCardByToken(token);
+  }
   const owner =
     card?.status === "ACTIVE" && card.user_id
       ? await fetchProfileById(card.user_id)

@@ -3,6 +3,8 @@ import { BatchGenerator } from "@/components/admin/batch-generator";
 import { CardRowActions } from "@/components/admin/card-row-actions";
 import { Badge } from "@/components/ui/badge";
 import { fetchAllCards, fetchBatches, fetchManagers } from "@/lib/data";
+import { getDb } from "@/db";
+import { releaseExpiredReservations } from "@/lib/cards";
 import { BatchManagerSelect } from "@/components/admin/batch-manager-select";
 import type { ProgrammingStatus } from "@/lib/types";
 
@@ -22,6 +24,7 @@ const programmingLabel: Record<ProgrammingStatus, string> = {
 
 export default async function AdminCardsPage() {
   await requireAdminPage();
+  await releaseExpiredReservations(getDb());
   const [cards, batches, managers] = await Promise.all([
     fetchAllCards(),
     fetchBatches(),
@@ -33,8 +36,9 @@ export default async function AdminCardsPage() {
       <h1 className="font-display text-4xl text-hb-ink">Card inventory</h1>
       <p className="mt-2 text-sm text-hb-leaf">
         Generate unprogrammed batches for physical printing and factory NFC
-        write jobs. Programming (NFC write) is tracked separately from
-        activation.
+        write jobs. Print each card&apos;s activation code (shown next to the
+        card ID, and in the CSV) inside its packaging, not on the card itself.
+        Unpaid reservations are released automatically after 7 days.
       </p>
 
       <div className="mt-6">
@@ -90,7 +94,14 @@ export default async function AdminCardsPage() {
               className="grid grid-cols-[1fr_auto] items-center gap-3 px-4 py-3 text-sm md:grid-cols-[1fr_auto_auto]"
             >
               <div className="min-w-0">
-                <p className="font-semibold text-hb-ink">{card.card_id}</p>
+                <p className="font-semibold text-hb-ink">
+                  {card.card_id}
+                  {card.activation_code ? (
+                    <span className="ml-2 rounded bg-hb-mist px-1.5 py-0.5 font-mono text-xs tracking-wider text-hb-forest">
+                      {card.activation_code}
+                    </span>
+                  ) : null}
+                </p>
                 <p className="truncate text-xs text-hb-leaf">
                   {card.public_token} · {programmingLabel[card.programming_status]}
                 </p>

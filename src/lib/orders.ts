@@ -5,7 +5,7 @@
  *
  * Paying is the only way a card becomes ACTIVE for a customer.
  */
-import { and, desc, eq, sql } from "drizzle-orm";
+import { and, desc, eq, inArray, sql } from "drizzle-orm";
 import type { DB } from "@/db";
 import * as schema from "@/db/schema";
 import { claimCard, reserveSequence, rowsAffected } from "@/lib/cards";
@@ -129,7 +129,16 @@ export async function markOrderPaid(
         ? { razorpay_payment_id: payment.razorpayPaymentId }
         : { cash_approved_by: payment.approvedBy }),
     })
-    .where(and(eq(schema.orders.id, orderId), eq(schema.orders.status, "PENDING")))
+    .where(
+      and(
+        eq(schema.orders.id, orderId),
+        // Money already moved for UPI, so a CANCELLED (expired) order is still
+        // recorded as paid; the card is activated if it's free again.
+        payment.method === "UPI"
+          ? inArray(schema.orders.status, ["PENDING", "CANCELLED"])
+          : eq(schema.orders.status, "PENDING")
+      )
+    )
     .run();
   if (rowsAffected(res) !== 1) return false;
 
@@ -155,9 +164,9 @@ export async function markOrderPaid(
   if (card) {
     const claimed = await claimCard(db, card.token, order.user_id);
     if (!claimed.ok) {
-      // Paid but the card was blocked/reassigned meanwhile: keep the payment,
-      // surface it to the operator.
-      console.error("Paid order could not activate card", orderId, claimed.reason);
+      // Paid but the card was blocked or taken by someone else meanwhile:
+      // keep the payment and flag it for a manual fix or refund.
+      console.error("REFUND-CHECK: paid order could not activate card", orderId, claimed.reason);
     }
   }
   return true;

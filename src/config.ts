@@ -44,9 +44,16 @@ const schema = z
     MEDIA_MAX_VIDEO_MB: positiveNumber(50),
     MEDIA_QUOTA_MB_PER_USER: positiveNumber(100),
 
-    // --- Email (optional; logs to console without a key) --------------------
+    // --- Email (optional; logs to console without keys) -------------------
+    // Gmail API (preferred): sends as the Gmail account in EMAIL_FROM.
+    GMAIL_CLIENT_ID: optionalString,
+    GMAIL_CLIENT_SECRET: optionalString,
+    GMAIL_REFRESH_TOKEN: optionalString,
+    // Resend: only for a domain you own (it can't send as @gmail.com).
     RESEND_API_KEY: optionalString,
-    EMAIL_FROM: z.string().default("HIGHBREED <no-reply@highfis.com>"),
+    EMAIL_FROM: z
+      .string()
+      .default("HIGHBREED SUPPLIES <highbreedsuppliesotp56@gmail.com>"),
     // On by default: registration and unverified sign-ins need the emailed OTP.
     REQUIRE_EMAIL_VERIFICATION: z
       .enum(["true", "false"])
@@ -71,7 +78,9 @@ const schema = z
 export type AppConfig = z.output<typeof schema> & {
   features: {
     media: boolean;
+    /** Any real email provider (Gmail or Resend). */
     email: boolean;
+    gmail: boolean;
     sentry: boolean;
     google: boolean;
     razorpay: boolean;
@@ -107,6 +116,14 @@ export function parseConfig(env: Record<string, string | undefined>): AppConfig 
     lines.push("  • GOOGLE_CLIENT_ID and GOOGLE_CLIENT_SECRET must be set together");
   }
 
+  const gmailKeys = ["GMAIL_CLIENT_ID", "GMAIL_CLIENT_SECRET", "GMAIL_REFRESH_TOKEN"] as const;
+  const gmailSet = gmailKeys.filter((k) => env[k]?.trim());
+  if (gmailSet.length && gmailSet.length !== gmailKeys.length) {
+    for (const k of gmailKeys) {
+      if (!env[k]?.trim()) lines.push(`  • ${k} is required when any GMAIL_* key is set`);
+    }
+  }
+
   if (Boolean(env.RAZORPAY_KEY_ID?.trim()) !== Boolean(env.RAZORPAY_KEY_SECRET?.trim())) {
     lines.push("  • RAZORPAY_KEY_ID and RAZORPAY_KEY_SECRET must be set together");
   }
@@ -132,7 +149,8 @@ export function parseConfig(env: Record<string, string | undefined>): AppConfig 
       .filter(Boolean),
     features: {
       media: Boolean(c.R2_ACCOUNT_ID),
-      email: Boolean(c.RESEND_API_KEY),
+      email: Boolean(c.RESEND_API_KEY || c.GMAIL_REFRESH_TOKEN),
+      gmail: Boolean(c.GMAIL_CLIENT_ID && c.GMAIL_CLIENT_SECRET && c.GMAIL_REFRESH_TOKEN),
       sentry: Boolean(c.SENTRY_DSN),
       google: Boolean(c.GOOGLE_CLIENT_ID && c.GOOGLE_CLIENT_SECRET),
       razorpay: Boolean(c.RAZORPAY_KEY_ID && c.RAZORPAY_KEY_SECRET),
@@ -165,6 +183,9 @@ export function getConfig(): AppConfig {
     env.RAZORPAY_KEY_SECRET,
     env.RAZORPAY_WEBHOOK_SECRET,
     env.TRUSTED_ORIGINS,
+    env.GMAIL_CLIENT_ID,
+    env.GMAIL_CLIENT_SECRET,
+    env.GMAIL_REFRESH_TOKEN,
   ].join("|");
   if (cache?.key !== key) cache = { key, config: parseConfig(env) };
   return cache.config;

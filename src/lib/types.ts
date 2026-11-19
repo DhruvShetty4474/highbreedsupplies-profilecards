@@ -95,6 +95,9 @@ export type Card = {
   user_id: string | null;
   batch_id: string | null;
   manager_id?: string | null;
+  /** Printed inside the packaging; typed by the buyer to activate. */
+  activation_code?: string | null;
+  reserved_at?: string | null;
   programmed_at: string | null;
   activated_at: string | null;
   blocked_at: string | null;

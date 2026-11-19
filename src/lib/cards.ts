@@ -8,7 +8,7 @@
  *
  * The two never influence each other.
  */
-import { and, eq, isNull, or, sql } from "drizzle-orm";
+import { and, eq, isNull, lt, or, sql } from "drizzle-orm";
 import { customAlphabet } from "nanoid";
 import type { DB } from "@/db";
 import * as schema from "@/db/schema";
@@ -20,6 +20,16 @@ const tokenBody = customAlphabet(
   24
 );
 const batchSuffix = customAlphabet("ABCDEFGHJKLMNPQRSTUVWXYZ23456789", 6);
+// No 0/O, 1/I/L: easy to read off a printed card. 31^6 ≈ 887 million codes.
+const activationCodeBody = customAlphabet("ABCDEFGHJKMNPQRSTUVWXYZ23456789", 6);
+
+/** Random code printed inside the card's packaging (e.g. "K7P2QX"). */
+export function generateActivationCode() {
+  return activationCodeBody();
+}
+
+/** Unpaid reservations are released after this many days. */
+export const RESERVATION_DAYS = 7;
 
 export const TOKEN_RE = /^tok_[A-Za-z0-9]{24}$/;
 
@@ -83,6 +93,7 @@ export async function createBatch(db: DB, opts: NewBatch) {
         qr_url: url,
         batch_id: batchId,
         manager_id: opts.managerId ?? null,
+        activation_code: generateActivationCode(),
       };
     });
 
@@ -116,14 +127,62 @@ export type ReserveResult =
   | { ok: true; cardId: string; managerId: string | null }
   | { ok: false; reason: "not_found" | "blocked" | "taken" | "bad_code" };
 
-/** Printed card code, normalised: " hb000123 " → "HB000123". */
+/** Typed activation code, normalised: " k7p2-qx " → "K7P2QX". */
 export function normaliseCardCode(code: string) {
-  return code.trim().toUpperCase().replace(/s+/g, "");
+  return code.toUpperCase().replace(/[^A-Z0-9]/g, "");
+}
+
+function reservationCutoff(now = Date.now()) {
+  return new Date(now - RESERVATION_DAYS * 86_400_000).toISOString();
 }
 
 /**
- * Step 1 of activation: the signed-in user proves they hold the card by
- * typing the code printed on it. The card is held for them (RESERVED) and
+ * RESERVED → UNCLAIMED, cancelling the card's open orders (and any cash code).
+ * `onlyIfExpired` releases only reservations older than RESERVATION_DAYS.
+ * Returns true when the card was released.
+ */
+export async function releaseCard(
+  db: DB,
+  cardId: string,
+  { onlyIfExpired = false }: { onlyIfExpired?: boolean } = {}
+) {
+  const now = new Date().toISOString();
+  const res = await db
+    .update(schema.cards)
+    .set({ status: "UNCLAIMED", user_id: null, reserved_at: null, updated_at: now })
+    .where(
+      and(
+        eq(schema.cards.card_id, cardId),
+        eq(schema.cards.status, "RESERVED"),
+        onlyIfExpired ? lt(schema.cards.reserved_at, reservationCutoff()) : undefined
+      )
+    )
+    .run();
+  if (rowsAffected(res) !== 1) return false;
+  await db
+    .update(schema.orders)
+    .set({ status: "CANCELLED", cash_code_hash: null, cash_code_expires_at: null, updated_at: now })
+    .where(and(eq(schema.orders.card_id, cardId), eq(schema.orders.status, "PENDING")));
+  return true;
+}
+
+/** Release every reservation older than RESERVATION_DAYS. Cheap; run on page loads. */
+export async function releaseExpiredReservations(db: DB) {
+  const stale = await db
+    .select({ card_id: schema.cards.card_id })
+    .from(schema.cards)
+    .where(and(eq(schema.cards.status, "RESERVED"), lt(schema.cards.reserved_at, reservationCutoff())))
+    .limit(100);
+  let released = 0;
+  for (const c of stale) {
+    if (await releaseCard(db, c.card_id, { onlyIfExpired: true })) released++;
+  }
+  return released;
+}
+
+/**
+ * Step 1 of activation: the signed-in user proves they bought the card by
+ * typing the random activation code printed inside its packaging. The card is held for them (RESERVED) and
  * they are linked to the card's manager. Single conditional UPDATE, so two
  * people can't reserve the same card.
  */
@@ -133,14 +192,18 @@ export async function reserveCard(
   userId: string,
   code: string
 ): Promise<ReserveResult> {
-  const card = await db
-    .select()
-    .from(schema.cards)
-    .where(eq(schema.cards.public_token, token))
-    .get();
+  const find = () =>
+    db.select().from(schema.cards).where(eq(schema.cards.public_token, token)).get();
+  let card = await find();
   if (!card) return { ok: false, reason: "not_found" };
+  // Someone else's reservation ran out: free the card first.
+  if (card.status === "RESERVED" && (await releaseCard(db, card.card_id, { onlyIfExpired: true }))) {
+    card = (await find())!;
+  }
   if (card.status === "BLOCKED") return { ok: false, reason: "blocked" };
-  if (normaliseCardCode(code) !== card.card_id) return { ok: false, reason: "bad_code" };
+  if (!card.activation_code || normaliseCardCode(code) !== card.activation_code) {
+    return { ok: false, reason: "bad_code" };
+  }
   const mine = { ok: true, cardId: card.card_id, managerId: card.manager_id } as const;
   if (card.user_id === userId && card.status !== "UNCLAIMED") return mine;
   if (card.status !== "UNCLAIMED") return { ok: false, reason: "taken" };
@@ -148,7 +211,7 @@ export async function reserveCard(
   const now = new Date().toISOString();
   const res = await db
     .update(schema.cards)
-    .set({ status: "RESERVED", user_id: userId, updated_at: now })
+    .set({ status: "RESERVED", user_id: userId, reserved_at: now, updated_at: now })
     .where(and(eq(schema.cards.public_token, token), eq(schema.cards.status, "UNCLAIMED")))
     .run();
   if (rowsAffected(res) !== 1) return { ok: false, reason: "taken" };
@@ -291,6 +354,7 @@ export function resolveCardView(
 
 const CSV_COLUMNS = [
   "card_id",
+  "activation_code",
   "token",
   "nfc_url",
   "qr_url",
@@ -304,7 +368,7 @@ function csvCell(v: string) {
 
 export function cardsToCsv(cards: Card[]) {
   const rows = cards.map((c) =>
-    [c.card_id, c.public_token, c.nfc_url, c.qr_url, c.status, c.programming_status]
+    [c.card_id, c.activation_code ?? "", c.public_token, c.nfc_url, c.qr_url, c.status, c.programming_status]
       .map((v) => csvCell(String(v)))
       .join(",")
   );

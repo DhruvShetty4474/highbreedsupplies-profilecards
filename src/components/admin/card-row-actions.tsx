@@ -15,6 +15,11 @@ export function CardRowActions({
   const [pending, setPending] = useState(false);
   const blocked = status === "BLOCKED";
 
+  async function release() {
+    if (!window.confirm(`Release ${cardId}? The unpaid reservation is cancelled and anyone with the card can register it again.`)) return;
+    await send("release");
+  }
+
   async function toggle() {
     const action = blocked ? "unblock" : "block";
     if (
@@ -23,6 +28,10 @@ export function CardRowActions({
     ) {
       return;
     }
+    await send(action);
+  }
+
+  async function send(action: "block" | "unblock" | "release") {
     setPending(true);
     const res = await fetch(`/api/admin/cards/${cardId}/status`, {
       method: "POST",
@@ -49,6 +58,11 @@ export function CardRowActions({
       <a href={`/api/admin/cards/${cardId}/programming-data`} className="text-hb-leaf">
         JSON
       </a>
+      {status === "RESERVED" ? (
+        <button type="button" onClick={release} disabled={pending} className="text-hb-goldDeep">
+          Release
+        </button>
+      ) : null}
       <button
         type="button"
         onClick={toggle}

@@ -3,6 +3,7 @@ import { Badge } from "@/components/ui/badge";
 import { getDb } from "@/db";
 import { requireManagerPage } from "@/lib/auth";
 import { fetchOrdersForManager, formatInr } from "@/lib/orders";
+import { releaseExpiredReservations } from "@/lib/cards";
 import Link from "next/link";
 
 export const metadata = { title: "Manager · Payments" };
@@ -21,6 +22,7 @@ function when(iso: string | null) {
 
 export default async function ManagerPaymentsPage() {
   const me = await requireManagerPage();
+  await releaseExpiredReservations(getDb());
   // Admins see every manager's orders.
   const rows = await fetchOrdersForManager(getDb(), me.role === "admin" ? null : me.user_id);
 

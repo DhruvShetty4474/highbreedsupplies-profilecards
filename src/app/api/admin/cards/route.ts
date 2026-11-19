@@ -54,6 +54,7 @@ export async function POST(request: Request) {
       export_url: `/api/admin/batches/${result.batchId}/export`,
       cards: result.cards.map((c) => ({
         card_id: c.card_id,
+        activation_code: c.activation_code,
         public_token: c.public_token,
         nfc_url: c.nfc_url,
         programming_endpoint: `${appUrl()}/api/admin/cards/${c.card_id}/programming-data`,

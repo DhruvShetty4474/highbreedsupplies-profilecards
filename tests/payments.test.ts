@@ -133,7 +133,7 @@ async function setup(price = 999) {
   );
   signOutBrowser();
   expect(batch).toHaveProperty("cards");
-  return { managerId, cards: batch.cards as { card_id: string; public_token: string }[] };
+  return { managerId, cards: batch.cards as { card_id: string; activation_code: string; public_token: string }[] };
 }
 
 const billing = {
@@ -163,7 +163,9 @@ describe("card activation: code → pay by cash with the manager's code", () => 
     expect(early.status).toBe(409);
 
     expect((await codeRoute(req("/x", { body: { code: "HB999999" } }), tokenParams)).status).toBe(400);
-    const ok = await codeRoute(req("/x", { body: { code: ` ${card.card_id.toLowerCase()} ` } }), tokenParams);
+    // The card number printed on the card itself is not the activation code.
+    expect((await codeRoute(req("/x", { body: { code: card.card_id } }), tokenParams)).status).toBe(400);
+    const ok = await codeRoute(req("/x", { body: { code: ` ${card.activation_code.toLowerCase().replace(/(...)/, "$1-")} ` } }), tokenParams);
     expect(ok.status).toBe(200);
     expect((await cardRow(card.card_id)).status).toBe("RESERVED");
     const prof = await db.select().from(schema.profiles).where(eq(schema.profiles.user_id, customerId)).get();
@@ -222,7 +224,7 @@ describe("card activation: code → pay by cash with the manager's code", () => 
     const card = cards[0];
     await registerUser({ email: "asha@example.com", username: "asha" });
     const p = params({ token: card.public_token });
-    await codeRoute(req("/x", { body: { code: card.card_id } }), p);
+    await codeRoute(req("/x", { body: { code: card.activation_code } }), p);
     const { order_id } = await json(await checkoutRoute(req("/x", { body: { ...billing, method: "CASH" } }), p));
     await login("mgr@example.com");
     const { code } = await json(await cashCodeRoute(req("/x"), params({ id: order_id })));
@@ -236,16 +238,16 @@ describe("card activation: code → pay by cash with the manager's code", () => 
     const { cards } = await setup();
     const p = params({ token: cards[0].public_token });
     await registerUser({ email: "first@example.com", username: "first" });
-    expect((await codeRoute(req("/x", { body: { code: cards[0].card_id } }), p)).status).toBe(200);
+    expect((await codeRoute(req("/x", { body: { code: cards[0].activation_code } }), p)).status).toBe(200);
     await registerUser({ email: "second@example.com", username: "second" });
-    expect((await codeRoute(req("/x", { body: { code: cards[0].card_id } }), p)).status).toBe(409);
+    expect((await codeRoute(req("/x", { body: { code: cards[0].activation_code } }), p)).status).toBe(409);
   });
 
   it("refuses checkout while the price is not set", async () => {
     const { cards } = await setup(0);
     const p = params({ token: cards[0].public_token });
     await registerUser({ email: "asha@example.com", username: "asha" });
-    await codeRoute(req("/x", { body: { code: cards[0].card_id } }), p);
+    await codeRoute(req("/x", { body: { code: cards[0].activation_code } }), p);
     expect((await checkoutRoute(req("/x", { body: { ...billing, method: "CASH" } }), p)).status).toBe(503);
   });
 });
@@ -279,7 +281,7 @@ describe("UPI via Razorpay", () => {
     const card = cards[0];
     await registerUser({ email: "asha@example.com", username: "asha" });
     const p = params({ token: card.public_token });
-    await codeRoute(req("/x", { body: { code: card.card_id } }), p);
+    await codeRoute(req("/x", { body: { code: card.activation_code } }), p);
     const co = await json(await checkoutRoute(req("/x", { body: { ...billing, method: "UPI" } }), p));
     expect(co.razorpay).toMatchObject({ key: "rzp_test_key", order_id: "order_RZP123", amount: 99900 });
     expect(calls[0]).toMatchObject({ url: "https://api.razorpay.com/v1/orders", body: { amount: 99900, currency: "INR" } });
@@ -341,7 +343,7 @@ describe("UPI via Razorpay", () => {
     const { cards } = await setup();
     await registerUser({ email: "asha@example.com", username: "asha" });
     const p = params({ token: cards[0].public_token });
-    await codeRoute(req("/x", { body: { code: cards[0].card_id } }), p);
+    await codeRoute(req("/x", { body: { code: cards[0].activation_code } }), p);
     await checkoutRoute(req("/x", { body: { ...billing, method: "UPI" } }), p);
 
     const send = async (amount: number) => {
@@ -383,5 +385,91 @@ describe("roles", () => {
     expect((await roleRoute(req("/x", { body: { role: "manager" } }), params({ userId: id }))).status).toBe(403);
     await signedInAdmin();
     expect((await roleRoute(req("/x", { body: { role: "admin" } }), params({ userId: id }))).status).toBe(400);
+  });
+});
+
+describe("activation codes + reservation expiry", () => {
+  it("new cards get random, readable 6-character codes", async () => {
+    const { createBatch } = await import("@/lib/cards");
+    const { cards } = await createBatch(db, { quantity: 50, label: "Codes", createdBy: null, baseUrl: "https://highfis.com" });
+    const codes = cards.map((c) => c.activation_code);
+    for (const c of codes) expect(c).toMatch(/^[ABCDEFGHJKMNPQRSTUVWXYZ23456789]{6}$/);
+    expect(new Set(codes).size).toBe(50);
+  });
+
+  it("an unpaid reservation expires after 7 days: card freed, open order cancelled", async () => {
+    const { cards } = await setup();
+    const card = cards[0];
+    const p = params({ token: card.public_token });
+    await registerUser({ email: "slow@example.com", username: "slow" });
+    await codeRoute(req("/x", { body: { code: card.activation_code } }), p);
+    const { order_id } = await json(await checkoutRoute(req("/x", { body: { ...billing, method: "CASH" } }), p));
+
+    // Not expired yet: someone else can't take it.
+    await registerUser({ email: "next@example.com", username: "next_buyer" });
+    expect((await codeRoute(req("/x", { body: { code: card.activation_code } }), p)).status).toBe(409);
+
+    const eightDaysAgo = new Date(Date.now() - 8 * 86_400_000).toISOString();
+    await db.update(schema.cards).set({ reserved_at: eightDaysAgo }).where(eq(schema.cards.card_id, card.card_id));
+
+    expect((await codeRoute(req("/x", { body: { code: card.activation_code } }), p)).status).toBe(200);
+    expect((await cardRow(card.card_id)).user_id).toBe(await userIdFor(db, "next@example.com"));
+    const old = (await db.select().from(schema.orders).where(eq(schema.orders.id, order_id)).get())!;
+    expect(old.status).toBe("CANCELLED");
+
+    // The first customer's cash code can no longer be used.
+    await login("mgr@example.com");
+    expect((await cashCodeRoute(req("/x"), params({ id: order_id }))).status).toBe(409);
+  });
+
+  it("a UPI payment that lands after expiry is still recorded and activates the free card", async () => {
+    process.env.RAZORPAY_KEY_ID = "rzp_test_key";
+    process.env.RAZORPAY_KEY_SECRET = "rzp_test_secret";
+    process.env.RAZORPAY_WEBHOOK_SECRET = "whsec_test";
+    const realFetch = globalThis.fetch;
+    vi.stubGlobal("fetch", async (url: string | URL, init?: RequestInit) =>
+      String(url).startsWith("https://api.razorpay.com/")
+        ? new Response(JSON.stringify({ id: "order_LATE", amount: 99900, currency: "INR" }))
+        : realFetch(url, init)
+    );
+    const { cards } = await setup();
+    const card = cards[0];
+    const p = params({ token: card.public_token });
+    await registerUser({ email: "late@example.com", username: "late_payer" });
+    await codeRoute(req("/x", { body: { code: card.activation_code } }), p);
+    await checkoutRoute(req("/x", { body: { ...billing, method: "UPI" } }), p);
+
+    const { releaseExpiredReservations } = await import("@/lib/cards");
+    await db.update(schema.cards).set({ reserved_at: new Date(Date.now() - 8 * 86_400_000).toISOString() });
+    expect(await releaseExpiredReservations(db)).toBe(1);
+    expect((await cardRow(card.card_id)).status).toBe("UNCLAIMED");
+
+    const body = JSON.stringify({
+      event: "payment.captured",
+      payload: { payment: { entity: { id: "pay_LATE", order_id: "order_LATE", amount: 99900, status: "captured" } } },
+    });
+    await webhookRoute(
+      new Request("http://localhost/api/webhooks/razorpay", {
+        method: "POST",
+        body,
+        headers: { "x-razorpay-signature": await hmac("whsec_test", body) },
+      })
+    );
+    const order = (await db.select().from(schema.orders).get())!;
+    expect(order.status).toBe("PAID");
+    expect(await cardRow(card.card_id)).toMatchObject({
+      status: "ACTIVE",
+      user_id: await userIdFor(db, "late@example.com"),
+    });
+  });
+
+  it("admin can release a reserved card by hand", async () => {
+    const { POST: statusRoute } = await import("@/app/api/admin/cards/[card_id]/status/route");
+    const { cards } = await setup();
+    await registerUser({ email: "holder@example.com", username: "holder" });
+    await codeRoute(req("/x", { body: { code: cards[0].activation_code } }), params({ token: cards[0].public_token }));
+    await login("boss@example.com");
+    const res = await json(await statusRoute(req("/x", { body: { action: "release" } }), params({ card_id: cards[0].card_id })));
+    expect(res).toMatchObject({ changed: true, status: "UNCLAIMED" });
   });
 });

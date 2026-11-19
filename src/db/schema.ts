@@ -191,6 +191,10 @@ export const cards = sqliteTable(
     batch_id: text("batch_id").references(() => cardBatches.batch_id, {
       onDelete: "set null",
     }),
+    /** Random code printed inside the packaging; proves the buyer opened a sold card. */
+    activation_code: text("activation_code"),
+    /** When the card was RESERVED; unpaid reservations expire. */
+    reserved_at: text("reserved_at"),
     /** Manager who gets the referral when this card is activated. */
     manager_id: text("manager_id").references(() => profiles.user_id, {
       onDelete: "set null",

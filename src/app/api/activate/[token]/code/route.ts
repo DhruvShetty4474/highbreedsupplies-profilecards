@@ -6,23 +6,23 @@ import { requireUser } from "@/lib/auth";
 import { reserveCard } from "@/lib/cards";
 import { hitRateLimit } from "@/lib/rate-limit";
 
-const bodySchema = z.object({ code: z.string().min(3).max(20) });
+const bodySchema = z.object({ code: z.string().min(4).max(20) });
 
 const ERRORS = {
   not_found: [404, "This card link is not valid."],
   blocked: [403, "This card is disabled. Contact HIGHBREED support."],
   taken: [409, "This card is already registered to another account."],
-  bad_code: [400, "That code doesn't match this card. Check the code printed on the card."],
+  bad_code: [400, "That activation code doesn't match this card. Check the code inside the packaging."],
 } as const;
 
-/** Step 1: confirm the code printed on the card → card RESERVED for me. */
+/** Step 1: confirm the activation code from the packaging → card RESERVED for me. */
 export async function POST(request: Request, { params }: { params: Promise<{ token: string }> }) {
   try {
     const profile = await requireUser();
     const { token } = await params;
     const parsed = bodySchema.safeParse(await request.json().catch(() => null));
     if (!parsed.success) {
-      return NextResponse.json({ error: "Enter the code printed on your card" }, { status: 400 });
+      return NextResponse.json({ error: "Enter the activation code from the packaging" }, { status: 400 });
     }
     const db = getDb();
     // Codes are short and sequential, so cap guesses per account.

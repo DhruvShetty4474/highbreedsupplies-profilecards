@@ -4,7 +4,7 @@ import { HighbreedWordmark } from "@/components/brand/logo";
 import { getConfig } from "@/config";
 import { getDb, schema } from "@/db";
 import { getSessionProfile } from "@/lib/auth";
-import { TOKEN_RE } from "@/lib/cards";
+import { RESERVATION_DAYS, releaseCard, TOKEN_RE } from "@/lib/cards";
 import { fetchCardByToken, fetchProfileById } from "@/lib/data";
 import { formatInr, priceBreakup } from "@/lib/orders";
 import { getSettings } from "@/lib/settings";
@@ -54,8 +54,11 @@ export default async function ActivatePage({ params }: Props) {
   const profile = await getSessionProfile();
   if (!profile) redirect(`/register?card=${token}`);
 
-  const card = await fetchCardByToken(token);
+  let card = await fetchCardByToken(token);
   if (!card) notFound();
+  if (card.status === "RESERVED" && (await releaseCard(getDb(), card.card_id, { onlyIfExpired: true }))) {
+    card = (await fetchCardByToken(token))!;
+  }
 
   if (card.status === "BLOCKED") {
     return (
@@ -156,6 +159,14 @@ export default async function ActivatePage({ params }: Props) {
           phone: profile.phone ?? "",
         }}
         pendingCashOrderId={pendingOrder?.method === "CASH" ? pendingOrder.id : null}
+        reservedUntil={
+          card.reserved_at
+            ? new Date(new Date(card.reserved_at).getTime() + RESERVATION_DAYS * 86_400_000).toLocaleDateString(
+                "en-IN",
+                { day: "numeric", month: "short", timeZone: "Asia/Kolkata" }
+              )
+            : null
+        }
       />
     </Shell>
   );

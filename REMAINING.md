@@ -89,13 +89,21 @@ After setting secrets: `npm run deploy`.
 - Login: password, or "Email code" (passwordless). Unverified accounts get a
   fresh code when they sign in with their password.
 - Better Auth `emailOTP` plugin, codes hashed, 10 min expiry, 5 tries.
-- **Needs `RESEND_API_KEY` in production.** Without it codes are only printed
-  to `npx wrangler tail`, so real customers can't register.
+- Emails are sent **from highbreedsuppliesotp56@gmail.com through the Gmail API**
+  (Resend can't send as @gmail.com). One-time setup: Google Cloud project →
+  enable Gmail API → OAuth consent screen (External, **publish to Production**,
+  otherwise the token dies after 7 days) → OAuth client (Desktop app) →
+  `npm run gmail:auth -- <CLIENT_ID> <CLIENT_SECRET>` → secrets
+  `GMAIL_CLIENT_ID`, `GMAIL_CLIENT_SECRET`, `GMAIL_REFRESH_TOKEN`.
+  Free Gmail sends up to ~500 emails/day.
+- **Without those keys codes are only printed to `npx wrangler tail`**, so real
+  customers can't register.
 - Phone/SMS OTP was dropped in favour of email (no DLT/SMS cost).
 
 ### 3.2 Card activation, managers, payments, invoices — DONE (2026-11-19)
 Flow: scan card → `/register?card=…` → email OTP → `/activate/<token>`
-→ (1) type the code printed on the card (`HB000123`) → card RESERVED and the
+→ (1) type the random **activation code printed inside the packaging**
+(e.g. `K7P2QX`; shown in Admin → Card inventory and in the batch CSV) → card RESERVED and the
 customer is referred to the batch's manager → (2) payment form (name, mobile,
 email, optional GSTIN, address with "Use my location", T&C) →
 **UPI** (Razorpay Checkout, signature checked server-side + webhook backup)
@@ -112,9 +120,15 @@ at `/invoice/<order>` (print / save as PDF, CGST+SGST or IGST).
   events `payment.captured` + `order.paid`). Without keys the UPI button is disabled; cash works.
 - Paying is now the only way a customer card becomes ACTIVE (dashboard
   "claim" and signup no longer activate cards).
+- Unpaid reservations are released after 7 days (open orders cancelled);
+  admins can also *Release* a RESERVED card by hand. A UPI payment that
+  lands after release is still recorded; if the card was taken meanwhile the
+  log line starts with `REFUND-CHECK`.
 - Not built: refunds/cancellation UI, invoice emails, invoice PDFs stored in R2.
 
 ### 3.2b Phase 2 (agreed, not started)
+- **Cash reconciliation:** each manager's cash collected vs. handed in to the
+  office (admin records hand-overs; dashboard shows the outstanding balance).
 - Attendance: manager log in / log out with location.
 - Salary & incentive calculation report. **Needs the salary and incentive rules from the owner.**
 
