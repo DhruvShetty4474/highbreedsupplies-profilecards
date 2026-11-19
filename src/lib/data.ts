@@ -1,4 +1,4 @@
-import { count, desc, eq, sql } from "drizzle-orm";
+import { count, desc, eq, inArray, sql } from "drizzle-orm";
 import { getDb, schema } from "@/db";
 import {
   DEFAULT_PROFILE_LAYOUT,
@@ -53,14 +53,27 @@ export async function fetchProfileById(userId: string): Promise<Profile | null> 
   return row ? toProfile(row) : null;
 }
 
-/** Admin-only callers: list client profiles. */
+/** Admin-only callers: list customer and manager profiles. */
 export async function fetchClientProfiles(): Promise<Profile[]> {
   const rows = await getDb()
     .select()
     .from(schema.profiles)
-    .where(eq(schema.profiles.role, "client"))
+    .where(inArray(schema.profiles.role, ["client", "manager"]))
     .orderBy(desc(schema.profiles.created_at));
   return rows.map(toProfile);
+}
+
+/** Managers, for batch assignment. */
+export async function fetchManagers() {
+  return getDb()
+    .select({
+      user_id: schema.profiles.user_id,
+      full_name: schema.profiles.full_name,
+      username: schema.profiles.username,
+    })
+    .from(schema.profiles)
+    .where(eq(schema.profiles.role, "manager"))
+    .orderBy(schema.profiles.full_name);
 }
 
 export async function fetchCardByToken(token: string): Promise<Card | null> {

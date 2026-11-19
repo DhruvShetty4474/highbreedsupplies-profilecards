@@ -26,7 +26,8 @@ export function DeviceClaimForm({ suggestions }: { suggestions: string[] }) {
       setError(body.error || "Claim failed");
       return;
     }
-    router.refresh();
+    const body = await res.json();
+    router.push(body.redirect);
   }
 
   return (

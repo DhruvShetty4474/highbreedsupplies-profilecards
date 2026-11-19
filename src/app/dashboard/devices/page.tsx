@@ -2,6 +2,7 @@ import { DeviceClaimForm } from "@/components/dashboard/device-claim-form";
 import { Badge } from "@/components/ui/badge";
 import { getSessionProfile } from "@/lib/auth";
 import { fetchCardsForUser } from "@/lib/data";
+import Link from "next/link";
 import { redirect } from "next/navigation";
 
 export const metadata = { title: "Cards / Devices" };
@@ -47,7 +48,16 @@ export default async function DashboardDevicesPage() {
                     <p className="font-semibold text-hb-ink">{card.card_id}</p>
                     <p className="truncate text-xs text-hb-leaf">{card.nfc_url}</p>
                   </div>
-                  <Badge tone="success">{card.status}</Badge>
+                  {card.status === "RESERVED" ? (
+                    <Link
+                      href={`/activate/${card.public_token}`}
+                      className="inline-flex min-h-11 items-center rounded-xl bg-hb-action px-4 text-sm font-semibold text-white"
+                    >
+                      Finish payment →
+                    </Link>
+                  ) : (
+                    <Badge tone={card.status === "ACTIVE" ? "success" : "danger"}>{card.status}</Badge>
+                  )}
                 </article>
               ))
             )}

@@ -5,6 +5,7 @@ import { HighbreedMark, HighbreedWordmark } from "@/components/brand/logo";
 import { getSessionProfile } from "@/lib/auth";
 import Link from "next/link";
 import { redirect } from "next/navigation";
+import { homeFor } from "@/lib/roles";
 
 export const metadata = { title: "Create account" };
 
@@ -16,17 +17,11 @@ export default async function RegisterPage({
   const sp = await searchParams;
   // Only same-site paths (blocks open redirects like //evil.com).
   if (sp.next && !/^\/(?!\/)/.test(sp.next)) sp.next = undefined;
+  const activate = sp.card ? `/activate/${encodeURIComponent(sp.card)}` : null;
   const session = await getSessionProfile();
-  if (session) {
-    redirect(
-      sp.next ||
-        (session.role === "admin" ? "/admin" : "/dashboard")
-    );
-  }
+  if (session) redirect(activate || sp.next || homeFor(session.role));
 
-  const loginHref = sp.card
-    ? `/login?next=/c/${sp.card}`
-    : "/login";
+  const loginHref = activate ? `/login?next=${encodeURIComponent(activate)}` : "/login";
 
   return (
     <main className="grid min-h-dvh lg:grid-cols-[1.05fr_0.95fr]">
@@ -46,15 +41,15 @@ export default async function RegisterPage({
             Create your HighCard page
           </h1>
           <p className="mt-5 max-w-md text-base leading-relaxed text-white/75">
-            Register with email and password, build your digital profile, then
-            share it with QR, link, or an NFC HighCard.
+            Register with your email, confirm the 6-digit code we send you,
+            then activate your HighCard.
           </p>
         </div>
         <ul className="relative mt-10 grid max-w-lg gap-3 text-sm text-white/80">
           {[
-            "Free self-serve customer accounts",
-            "Edit profile with live visitor preview",
-            "Share via QR, link & Quick Share",
+            "1. Create your account",
+            "2. Enter the code printed on your card",
+            "3. Pay by UPI or cash — your card goes live",
           ].map((item) => (
             <li
               key={item}
@@ -79,12 +74,13 @@ export default async function RegisterPage({
               Create account
             </h2>
             <p className="mt-2 text-sm leading-relaxed text-hb-leaf">
-              Use your email and a password. Admins can still create accounts
-              and will see everyone under Customers.
+              {activate
+                ? "Create your account to activate this HighCard. We'll email you a code to confirm it's you."
+                : "Use your email and a password. We'll email you a code to confirm it's you."}
             </p>
             <div className="mt-8">
               {getConfig().features.google ? (
-                <GoogleButton next={sp.card ? `/c/${encodeURIComponent(sp.card)}` : "/dashboard"} />
+                <GoogleButton next={activate ?? "/go"} />
               ) : null}
               <SignupForm cardToken={sp.card} />
             </div>

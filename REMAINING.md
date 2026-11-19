@@ -84,31 +84,39 @@ After setting secrets: `npm run deploy`.
 
 ## 3. Features requested but not built yet
 
-### 3.1 Phone-number login + OTP
-- **Status:** not started. Login is email/password, plus Google once that's configured.
-- **Blocker:** SMS OTP needs a paid provider. In India: MSG91, Fast2SMS or
-  Twilio, roughly ₹0.15–₹0.50 per SMS, and DLT registration is required for
-  Indian SMS. There's no reliable free SMS option.
-  - Free alternative: email OTP.
-  - Cheaper alternative: WhatsApp OTP via MSG91 or Gupshup.
-- **Implementation hint:** Better Auth has a `phoneNumber` plugin (OTP send
-  hook). Add a `phone_number` column through a new Drizzle migration. Rate-limit
-  the OTP sends with the existing limiter in `src/lib/rate-limit.ts`.
-- **Decision needed from owner:** which provider (or email OTP instead).
+### 3.1 Email OTP login + registration — DONE (2026-11-19)
+- Registration: name, email, password → 6-digit code by email → signed in.
+- Login: password, or "Email code" (passwordless). Unverified accounts get a
+  fresh code when they sign in with their password.
+- Better Auth `emailOTP` plugin, codes hashed, 10 min expiry, 5 tries.
+- **Needs `RESEND_API_KEY` in production.** Without it codes are only printed
+  to `npx wrangler tail`, so real customers can't register.
+- Phone/SMS OTP was dropped in favour of email (no DLT/SMS cost).
 
-### 3.2 Referral → new orders, with mobile registration, OTP, application, payment, invoice
-- **Status:** not started. It's a separate project.
-- **Needs a spec from the owner:**
-  - Who refers whom.
-  - What a referrer earns: discount, commission or credit.
-  - What the "application" form contains.
-  - What is being sold (cards? plans?) and the prices.
-  - Invoice format: GST number, HSN/SAC code, business address.
-- **Suggested stack:**
-  - Razorpay for payments: free to set up, about 2% per transaction, with webhooks to a Worker route.
-  - Invoices as HTML-to-PDF stored in R2.
-  - New D1 tables: `referrals`, `applications`, `orders`, `payments`, `invoices`.
-- **Depends on:** 3.1 (mobile OTP), R2 (invoice PDFs) and Resend (sending invoices).
+### 3.2 Card activation, managers, payments, invoices — DONE (2026-11-19)
+Flow: scan card → `/register?card=…` → email OTP → `/activate/<token>`
+→ (1) type the code printed on the card (`HB000123`) → card RESERVED and the
+customer is referred to the batch's manager → (2) payment form (name, mobile,
+email, optional GSTIN, address with "Use my location", T&C) →
+**UPI** (Razorpay Checkout, signature checked server-side + webhook backup)
+or **Cash** (manager taps *Approve cash* on `/manager`, reads out a one-time
+6-digit code, valid 30 min, 5 tries) → card ACTIVE → invoice `HB/2026-27/0001`
+at `/invoice/<order>` (print / save as PDF, CGST+SGST or IGST).
+
+- Roles: `admin`, `manager`, `client`. Admin → Customers → *Make manager*.
+- Admin → Card inventory: pick the manager when generating a batch (or change it per batch).
+- Admin → Settings → *Pricing & invoices*: card price (GST-inclusive), GST %,
+  GSTIN, address, HSN, T&C. **Price 0 = payments off.**
+- Razorpay secrets: `RAZORPAY_KEY_ID`, `RAZORPAY_KEY_SECRET`,
+  `RAZORPAY_WEBHOOK_SECRET` (webhook URL `https://highfis.com/api/webhooks/razorpay`,
+  events `payment.captured` + `order.paid`). Without keys the UPI button is disabled; cash works.
+- Paying is now the only way a customer card becomes ACTIVE (dashboard
+  "claim" and signup no longer activate cards).
+- Not built: refunds/cancellation UI, invoice emails, invoice PDFs stored in R2.
+
+### 3.2b Phase 2 (agreed, not started)
+- Attendance: manager log in / log out with location.
+- Salary & incentive calculation report. **Needs the salary and incentive rules from the owner.**
 
 ### 3.3 "VCF contact auto saving form" (client feedback)
 - **Done:** Save Contact now serves the vCard inline. iPhone opens the

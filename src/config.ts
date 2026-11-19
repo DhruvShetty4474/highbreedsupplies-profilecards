@@ -27,6 +27,10 @@ const schema = z
       .string({ error: "is required (generate: openssl rand -base64 32)" })
       .min(32, "must be at least 32 characters (openssl rand -base64 32)"),
 
+    /** Extra origins allowed to sign in (comma-separated), e.g. the
+     *  https://highbreed.<subdomain>.workers.dev test URL. */
+    TRUSTED_ORIGINS: optionalString,
+
     // --- Roles --------------------------------------------------------------
     ADMIN_EMAILS: optionalString,
 
@@ -43,23 +47,37 @@ const schema = z
     // --- Email (optional; logs to console without a key) --------------------
     RESEND_API_KEY: optionalString,
     EMAIL_FROM: z.string().default("HIGHBREED <no-reply@highfis.com>"),
+    // On by default: registration and unverified sign-ins need the emailed OTP.
     REQUIRE_EMAIL_VERIFICATION: z
       .enum(["true", "false"])
       .optional()
-      .default("false")
+      .default("true")
       .transform((v) => v === "true"),
 
     // --- Google sign-in (optional) ------------------------------------------
     GOOGLE_CLIENT_ID: optionalString,
     GOOGLE_CLIENT_SECRET: optionalString,
 
+    // --- Razorpay (optional as a pair; UPI payments) ------------------------
+    RAZORPAY_KEY_ID: optionalString,
+    RAZORPAY_KEY_SECRET: optionalString,
+    /** Webhook secret from Razorpay Dashboard → Webhooks (recommended). */
+    RAZORPAY_WEBHOOK_SECRET: optionalString,
+
     // --- Monitoring (optional) ----------------------------------------------
     SENTRY_DSN: z.string().url().optional().or(z.literal("").transform(() => undefined)),
   });
 
 export type AppConfig = z.output<typeof schema> & {
-  features: { media: boolean; email: boolean; sentry: boolean; google: boolean };
+  features: {
+    media: boolean;
+    email: boolean;
+    sentry: boolean;
+    google: boolean;
+    razorpay: boolean;
+  };
   adminEmails: string[];
+  trustedOrigins: string[];
 };
 
 export class ConfigError extends Error {}
@@ -89,6 +107,10 @@ export function parseConfig(env: Record<string, string | undefined>): AppConfig 
     lines.push("  • GOOGLE_CLIENT_ID and GOOGLE_CLIENT_SECRET must be set together");
   }
 
+  if (Boolean(env.RAZORPAY_KEY_ID?.trim()) !== Boolean(env.RAZORPAY_KEY_SECRET?.trim())) {
+    lines.push("  • RAZORPAY_KEY_ID and RAZORPAY_KEY_SECRET must be set together");
+  }
+
   if (!parsed.success || lines.length) {
     throw new ConfigError(
       `Invalid environment configuration:\n${lines.join("\n")}\n` +
@@ -100,6 +122,10 @@ export function parseConfig(env: Record<string, string | undefined>): AppConfig 
     ...c,
     APP_URL: c.APP_URL.replace(/\/$/, ""),
     R2_PUBLIC_URL: c.R2_PUBLIC_URL.replace(/\/$/, ""),
+    trustedOrigins: (c.TRUSTED_ORIGINS ?? "")
+      .split(",")
+      .map((o) => o.trim().replace(/\/$/, ""))
+      .filter(Boolean),
     adminEmails: (c.ADMIN_EMAILS ?? "")
       .split(",")
       .map((e) => e.trim().toLowerCase())
@@ -109,6 +135,7 @@ export function parseConfig(env: Record<string, string | undefined>): AppConfig 
       email: Boolean(c.RESEND_API_KEY),
       sentry: Boolean(c.SENTRY_DSN),
       google: Boolean(c.GOOGLE_CLIENT_ID && c.GOOGLE_CLIENT_SECRET),
+      razorpay: Boolean(c.RAZORPAY_KEY_ID && c.RAZORPAY_KEY_SECRET),
     },
   };
 }
@@ -134,6 +161,10 @@ export function getConfig(): AppConfig {
     env.REQUIRE_EMAIL_VERIFICATION,
     env.GOOGLE_CLIENT_ID,
     env.GOOGLE_CLIENT_SECRET,
+    env.RAZORPAY_KEY_ID,
+    env.RAZORPAY_KEY_SECRET,
+    env.RAZORPAY_WEBHOOK_SECRET,
+    env.TRUSTED_ORIGINS,
   ].join("|");
   if (cache?.key !== key) cache = { key, config: parseConfig(env) };
   return cache.config;

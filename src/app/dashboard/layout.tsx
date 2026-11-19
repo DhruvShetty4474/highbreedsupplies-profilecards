@@ -74,6 +74,11 @@ export default async function DashboardLayout({
                 @{profile.username}
               </p>
             </div>
+            {profile.role === "manager" || profile.role === "admin" ? (
+              <Link href="/manager" className="block text-xs font-semibold text-hb-mint">
+                Open Manager Dashboard →
+              </Link>
+            ) : null}
             {profile.role === "admin" ? (
               <Link
                 href="/admin"

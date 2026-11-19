@@ -1,9 +1,8 @@
-import { ClaimCardPanel } from "@/components/cards/claim-card-panel";
 import { HighbreedWordmark } from "@/components/brand/logo";
 import { Badge } from "@/components/ui/badge";
 import { getSessionProfile } from "@/lib/auth";
 import { fetchCardByToken, fetchProfileById } from "@/lib/data";
-import { ShieldAlert } from "lucide-react";
+import { Hourglass, ShieldAlert } from "lucide-react";
 import { notFound, redirect } from "next/navigation";
 import { resolveCardView, TOKEN_RE } from "@/lib/cards";
 
@@ -62,13 +61,35 @@ export default async function CardTokenRouterPage({ params }: Props) {
     );
   }
 
+  // New card: scanning it starts registration (or activation if signed in).
   const session = await getSessionProfile();
+  const activate = `/activate/${result.card.public_token}`;
+  if (result.view === "activate") {
+    redirect(session ? activate : `/register?card=${result.card.public_token}`);
+  }
 
+  // RESERVED: the holder finishes payment; anyone else sees "pending".
+  if (session && session.user_id === result.card.user_id) redirect(activate);
   return (
     <PublicCardShell>
       <div className="p-6 pt-10">
         <HighbreedWordmark />
-        <ClaimCardPanel card={result.card} sessionUsername={session?.username} />
+        <div className="mt-8 rounded-[32px] border border-white/70 bg-white/90 px-6 py-8 shadow-soft">
+          <Hourglass className="h-9 w-9 text-hb-action" />
+          <h1 className="mt-4 font-display text-3xl text-hb-ink">Activation in progress</h1>
+          <p className="mt-3 text-sm leading-relaxed text-hb-leaf">
+            This HighCard has been registered and is waiting for payment. The
+            profile will appear here as soon as it&apos;s activated.
+          </p>
+          {!session ? (
+            <a
+              href={`/login?next=${encodeURIComponent(activate)}`}
+              className="mt-6 inline-flex min-h-11 items-center font-semibold text-hb-action"
+            >
+              Is this your card? Sign in to finish →
+            </a>
+          ) : null}
+        </div>
       </div>
     </PublicCardShell>
   );

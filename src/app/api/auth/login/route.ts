@@ -79,8 +79,11 @@ export async function POST(request: Request) {
     if (code === "EMAIL_NOT_VERIFIED") {
       return NextResponse.json(
         {
-          error: "Please verify your email first — we've sent you a new link.",
+          // Only reached with the right password, so returning the email
+          // (needed when they signed in by username) reveals nothing new.
+          error: "Please verify your email first — we've emailed you a new code.",
           code,
+          email,
         },
         { status: 403 }
       );

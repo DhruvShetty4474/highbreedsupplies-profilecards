@@ -24,6 +24,8 @@ export default defineConfig({
       MEDIA_MAX_VIDEO_MB: "50",
       MEDIA_QUOTA_MB_PER_USER: "10",
       R2_PUBLIC_URL: "https://media.test",
+      // Older suites sign in straight after signup; OTP tests turn this on.
+      REQUIRE_EMAIL_VERIFICATION: "false",
     },
   },
 });

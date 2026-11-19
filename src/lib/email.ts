@@ -39,6 +39,41 @@ function escapeHtml(s: string) {
   return s.replace(/[&<>"']/g, (c) => `&#${c.charCodeAt(0)};`);
 }
 
+const OTP_PURPOSE = {
+  "email-verification": "verify your email",
+  "sign-in": "sign in",
+  "forget-password": "reset your password",
+  "change-email": "change your email",
+} as const;
+
+/** One-time code email (registration, sign-in, ...). Valid 10 minutes. */
+export function otpEmail(opts: {
+  to: string;
+  otp: string;
+  type: keyof typeof OTP_PURPOSE;
+}): Email {
+  const purpose = OTP_PURPOSE[opts.type] ?? "continue";
+  const intro = `Your HIGHBREED code to ${purpose} is:`;
+  const outro = "It expires in 10 minutes. Never share it with anyone — HIGHBREED staff will never ask for it.";
+  return {
+    to: opts.to,
+    subject: `${opts.otp} is your HIGHBREED code`,
+    text: `${intro}
+
+${opts.otp}
+
+${outro}
+
+— HIGHBREED`,
+    html: `<div style="font-family:system-ui,sans-serif;max-width:480px;margin:auto;color:#0b2e24">
+<h2 style="font-weight:600">HIGHBREED</h2>
+<p>${escapeHtml(intro)}</p>
+<p style="font-size:32px;font-weight:700;letter-spacing:8px;background:#eef5f1;padding:16px;border-radius:12px;text-align:center">${escapeHtml(opts.otp)}</p>
+<p style="font-size:13px;color:#4b6b60">${escapeHtml(outro)}</p>
+</div>`,
+  };
+}
+
 /** Small branded template with one call-to-action button. */
 export function actionEmail(opts: {
   to: string;

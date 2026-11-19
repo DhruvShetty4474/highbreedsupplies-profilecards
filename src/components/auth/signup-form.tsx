@@ -1,22 +1,39 @@
 "use client";
 
+import { OtpStep } from "@/components/auth/otp-step";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import Link from "next/link";
 import { FormEvent, useState } from "react";
 import { useRouter } from "next/navigation";
 
+/**
+ * Register → 6-digit email code → (card flow) /activate/<token>.
+ * Without a card token the user lands on their dashboard.
+ */
 export function SignupForm({ cardToken }: { cardToken?: string }) {
   const router = useRouter();
   const [pending, setPending] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [done, setDone] = useState<string | null>(null);
+  const [verifyEmail, setVerifyEmail] = useState<string | null>(null);
+
+  const after = cardToken ? `/activate/${encodeURIComponent(cardToken)}` : "/go";
+  const loginHref = cardToken ? `/login?next=${encodeURIComponent(after)}` : "/login";
+
+  function finish() {
+    router.push(after);
+    router.refresh();
+  }
 
   async function onSubmit(e: FormEvent<HTMLFormElement>) {
     e.preventDefault();
-    setPending(true);
     setError(null);
     const form = new FormData(e.currentTarget);
+    if (form.get("password") !== form.get("confirm")) {
+      setError("The two passwords don't match.");
+      return;
+    }
+    setPending(true);
     const res = await fetch("/api/auth/signup", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
@@ -24,43 +41,23 @@ export function SignupForm({ cardToken }: { cardToken?: string }) {
         email: form.get("email"),
         password: form.get("password"),
         full_name: form.get("full_name"),
-        username: form.get("username"),
-        card_token: cardToken,
       }),
     });
     setPending(false);
+    const body = await res.json().catch(() => ({}));
     if (!res.ok) {
-      const body = await res.json().catch(() => ({}));
       setError(body.error || "Could not create account");
       return;
     }
-    const body = (await res.json()) as {
-      card_claimed?: boolean;
-      card_error?: string;
-      verification_required?: boolean;
-    };
     if (body.verification_required) {
-      setDone(
-        (body.card_claimed ? "Your HighCard is activated. " : "") +
-          "Check your inbox and click the verification link to sign in."
-      );
+      setVerifyEmail(body.email);
       return;
     }
-    if (body.card_error) {
-      setDone(`Account created. ${body.card_error}`);
-      window.setTimeout(() => router.push("/dashboard"), 2500);
-      return;
-    }
-    router.push(body.card_claimed ? `/c/${cardToken}` : "/dashboard");
-    router.refresh();
+    finish();
   }
 
-  if (done) {
-    return (
-      <p className="rounded-xl bg-hb-mist px-4 py-4 text-sm text-hb-forest" role="status">
-        {done}
-      </p>
-    );
+  if (verifyEmail) {
+    return <OtpStep email={verifyEmail} purpose="email-verification" onVerified={finish} />;
   }
 
   return (
@@ -73,26 +70,27 @@ export function SignupForm({ cardToken }: { cardToken?: string }) {
         required
       />
       <Input
-        name="username"
-        label="Username"
-        placeholder="e.g. ananya"
-        hint="Letters, numbers, underscore — becomes your public URL"
-        autoComplete="username"
-        required
-      />
-      <Input
         name="email"
         type="email"
         label="Email"
         placeholder="you@company.com"
         autoComplete="email"
+        inputMode="email"
         required
       />
       <Input
         name="password"
         type="password"
-        label="Password"
+        label="Create password"
         placeholder="At least 8 characters"
+        autoComplete="new-password"
+        minLength={8}
+        required
+      />
+      <Input
+        name="confirm"
+        type="password"
+        label="Confirm password"
         autoComplete="new-password"
         minLength={8}
         required
@@ -103,11 +101,11 @@ export function SignupForm({ cardToken }: { cardToken?: string }) {
         </p>
       ) : null}
       <Button className="h-12 w-full" type="submit" disabled={pending}>
-        {pending ? "Creating…" : "Create account"}
+        {pending ? "Creating…" : "Create account & get code"}
       </Button>
       <p className="text-center text-xs leading-relaxed text-hb-leaf">
         Already registered?{" "}
-        <Link href="/login" className="font-semibold text-hb-action">
+        <Link href={loginHref} className="font-semibold text-hb-action">
           Sign in
         </Link>
       </p>

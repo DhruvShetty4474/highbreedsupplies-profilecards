@@ -1,5 +1,5 @@
-export type AppRole = "admin" | "client";
-export type CardStatus = "UNCLAIMED" | "ACTIVE" | "BLOCKED";
+export type AppRole = "admin" | "manager" | "client";
+export type CardStatus = "UNCLAIMED" | "RESERVED" | "ACTIVE" | "BLOCKED";
 export type ProgrammingStatus = "UNPROGRAMMED" | "PROGRAMMED" | "FAILED";
 
 export type SocialLink = {
@@ -94,6 +94,7 @@ export type Card = {
   status: CardStatus;
   user_id: string | null;
   batch_id: string | null;
+  manager_id?: string | null;
   programmed_at: string | null;
   activated_at: string | null;
   blocked_at: string | null;
@@ -119,6 +120,7 @@ export type CardBatch = {
   quantity: number;
   notes: string | null;
   created_by: string | null;
+  manager_id?: string | null;
   created_at: string;
 };
 

@@ -5,7 +5,9 @@ import { Input } from "@/components/ui/input";
 import { FormEvent, useState } from "react";
 import { useRouter } from "next/navigation";
 
-export function BatchGenerator() {
+type ManagerOption = { user_id: string; full_name: string; username: string };
+
+export function BatchGenerator({ managers }: { managers: ManagerOption[] }) {
   const router = useRouter();
   const [pending, setPending] = useState(false);
   const [result, setResult] = useState<string | null>(null);
@@ -24,6 +26,7 @@ export function BatchGenerator() {
         quantity: Number(form.get("quantity")),
         batch_label: String(form.get("batch_label")),
         notes: String(form.get("notes") || ""),
+        manager_id: String(form.get("manager_id") || "") || null,
       }),
     });
     setPending(false);
@@ -59,6 +62,25 @@ export function BatchGenerator() {
         defaultValue={5}
         required
       />
+      <label className="block space-y-1.5 md:col-span-2">
+        <span className="text-sm font-medium text-hb-forest">Manager</span>
+        <select
+          name="manager_id"
+          defaultValue=""
+          className="h-12 w-full rounded-2xl border border-hb-sand bg-white/90 px-4 text-base text-hb-ink hb-focus"
+        >
+          <option value="">No manager (customers aren&apos;t referred)</option>
+          {managers.map((m) => (
+            <option key={m.user_id} value={m.user_id}>
+              {m.full_name || m.username} (@{m.username})
+            </option>
+          ))}
+        </select>
+        <span className="text-xs text-hb-leaf/70">
+          Customers who register these cards are referred to this manager, who approves their cash payments.
+          {managers.length === 0 ? " Make someone a manager under Customers first." : ""}
+        </span>
+      </label>
       <div className="md:col-span-2">
         <Input name="notes" label="Notes" placeholder="Optional print notes" />
       </div>

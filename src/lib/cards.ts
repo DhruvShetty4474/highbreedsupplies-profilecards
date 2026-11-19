@@ -2,12 +2,13 @@
  * Card lifecycle — pure-ish functions over a Drizzle DB so they can be unit
  * tested against an in-memory SQLite database.
  *
- *   status:             UNCLAIMED → ACTIVE (claim) ; any → BLOCKED (admin)
+ *   status:             UNCLAIMED → RESERVED (registered + printed code)
+ *                       → ACTIVE (paid) ; any → BLOCKED (admin)
  *   programming_status: UNPROGRAMMED → PROGRAMMED | FAILED (factory verify)
  *
  * The two never influence each other.
  */
-import { and, eq, sql } from "drizzle-orm";
+import { and, eq, isNull, or, sql } from "drizzle-orm";
 import { customAlphabet } from "nanoid";
 import type { DB } from "@/db";
 import * as schema from "@/db/schema";
@@ -55,6 +56,8 @@ export type NewBatch = {
   notes?: string | null;
   createdBy: string | null;
   baseUrl: string;
+  /** Manager who sells this batch (gets the referral). */
+  managerId?: string | null;
 };
 
 /**
@@ -79,6 +82,7 @@ export async function createBatch(db: DB, opts: NewBatch) {
         nfc_url: url,
         qr_url: url,
         batch_id: batchId,
+        manager_id: opts.managerId ?? null,
       };
     });
 
@@ -95,6 +99,7 @@ export async function createBatch(db: DB, opts: NewBatch) {
           quantity: opts.quantity,
           notes: opts.notes ?? null,
           created_by: opts.createdBy,
+          manager_id: opts.managerId ?? null,
         }),
         ...inserts,
       ]);
@@ -107,11 +112,66 @@ export async function createBatch(db: DB, opts: NewBatch) {
   throw lastError;
 }
 
+export type ReserveResult =
+  | { ok: true; cardId: string; managerId: string | null }
+  | { ok: false; reason: "not_found" | "blocked" | "taken" | "bad_code" };
+
+/** Printed card code, normalised: " hb000123 " → "HB000123". */
+export function normaliseCardCode(code: string) {
+  return code.trim().toUpperCase().replace(/s+/g, "");
+}
+
+/**
+ * Step 1 of activation: the signed-in user proves they hold the card by
+ * typing the code printed on it. The card is held for them (RESERVED) and
+ * they are linked to the card's manager. Single conditional UPDATE, so two
+ * people can't reserve the same card.
+ */
+export async function reserveCard(
+  db: DB,
+  token: string,
+  userId: string,
+  code: string
+): Promise<ReserveResult> {
+  const card = await db
+    .select()
+    .from(schema.cards)
+    .where(eq(schema.cards.public_token, token))
+    .get();
+  if (!card) return { ok: false, reason: "not_found" };
+  if (card.status === "BLOCKED") return { ok: false, reason: "blocked" };
+  if (normaliseCardCode(code) !== card.card_id) return { ok: false, reason: "bad_code" };
+  const mine = { ok: true, cardId: card.card_id, managerId: card.manager_id } as const;
+  if (card.user_id === userId && card.status !== "UNCLAIMED") return mine;
+  if (card.status !== "UNCLAIMED") return { ok: false, reason: "taken" };
+
+  const now = new Date().toISOString();
+  const res = await db
+    .update(schema.cards)
+    .set({ status: "RESERVED", user_id: userId, updated_at: now })
+    .where(and(eq(schema.cards.public_token, token), eq(schema.cards.status, "UNCLAIMED")))
+    .run();
+  if (rowsAffected(res) !== 1) return { ok: false, reason: "taken" };
+
+  // First manager wins: a customer stays with the manager who onboarded them.
+  if (card.manager_id) {
+    await db
+      .update(schema.profiles)
+      .set({ referred_by: card.manager_id })
+      .where(and(eq(schema.profiles.user_id, userId), isNull(schema.profiles.referred_by)));
+  }
+  return mine;
+}
+
 export type ClaimResult =
   | { ok: true; alreadyOwned: boolean }
   | { ok: false; reason: "not_found" | "blocked" | "taken" };
 
-/** Single conditional UPDATE — two concurrent claims cannot both win. */
+/**
+ * Make the card ACTIVE for `userId` (called once payment is confirmed).
+ * Works from UNCLAIMED, or RESERVED by the same user. Single conditional
+ * UPDATE — two concurrent claims cannot both win.
+ */
 export async function claimCard(
   db: DB,
   token: string,
@@ -122,7 +182,13 @@ export async function claimCard(
     .update(schema.cards)
     .set({ status: "ACTIVE", user_id: userId, activated_at: now, updated_at: now })
     .where(
-      and(eq(schema.cards.public_token, token), eq(schema.cards.status, "UNCLAIMED"))
+      and(
+        eq(schema.cards.public_token, token),
+        or(
+          eq(schema.cards.status, "UNCLAIMED"),
+          and(eq(schema.cards.status, "RESERVED"), eq(schema.cards.user_id, userId))
+        )
+      )
     )
     .run();
   if (rowsAffected(res) === 1) return { ok: true, alreadyOwned: false };
@@ -134,7 +200,9 @@ export async function claimCard(
     .get();
   if (!card) return { ok: false, reason: "not_found" };
   if (card.status === "BLOCKED") return { ok: false, reason: "blocked" };
-  if (card.user_id === userId) return { ok: true, alreadyOwned: true };
+  if (card.user_id === userId && card.status === "ACTIVE") {
+    return { ok: true, alreadyOwned: true };
+  }
   return { ok: false, reason: "taken" };
 }
 
@@ -176,7 +244,10 @@ export async function recordVerification(
   return { success, programming_status: success ? "PROGRAMMED" : "FAILED" } as const;
 }
 
-/** Block any card; unblock returns it to ACTIVE (if owned) or UNCLAIMED. */
+/**
+ * Block any card. Unblock returns it to UNCLAIMED (no owner), RESERVED
+ * (owner but never paid) or ACTIVE.
+ */
 export async function setCardBlocked(db: DB, cardId: string, blocked: boolean) {
   const now = new Date().toISOString();
   const res = blocked
@@ -188,7 +259,7 @@ export async function setCardBlocked(db: DB, cardId: string, blocked: boolean) {
     : await db
         .update(schema.cards)
         .set({
-          status: sql`CASE WHEN ${schema.cards.user_id} IS NULL THEN 'UNCLAIMED' ELSE 'ACTIVE' END`,
+          status: sql`CASE WHEN ${schema.cards.user_id} IS NULL THEN 'UNCLAIMED' WHEN ${schema.cards.activated_at} IS NULL THEN 'RESERVED' ELSE 'ACTIVE' END`,
           blocked_at: null,
           updated_at: now,
         })
@@ -201,6 +272,7 @@ export type CardView =
   | { view: "not_found" }
   | { view: "blocked"; card: Card }
   | { view: "activate"; card: Card }
+  | { view: "reserved"; card: Card }
   | { view: "profile"; username: string };
 
 /** /c/[token] routing decision. */
@@ -211,6 +283,7 @@ export function resolveCardView(
   if (!card) return { view: "not_found" };
   if (card.status === "BLOCKED") return { view: "blocked", card };
   if (card.status === "UNCLAIMED") return { view: "activate", card };
+  if (card.status === "RESERVED") return { view: "reserved", card };
   // ACTIVE: an owner must exist; a dangling card is treated as unknown.
   if (owner?.username) return { view: "profile", username: owner.username };
   return { view: "not_found" };

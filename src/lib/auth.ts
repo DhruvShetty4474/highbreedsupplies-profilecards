@@ -49,3 +49,20 @@ export async function requireAdminPage(): Promise<Profile> {
   if (profile.role !== "admin") redirect("/dashboard");
   return profile;
 }
+
+/** Managers (and admins, who can do everything a manager can). */
+export async function requireManager(): Promise<Profile> {
+  const profile = await requireUser();
+  if (profile.role !== "manager" && profile.role !== "admin") {
+    throw new AuthError(403, "Manager access required");
+  }
+  return profile;
+}
+
+/** Page-level manager check (see requireAdminPage for why per page). */
+export async function requireManagerPage(): Promise<Profile> {
+  const profile = await getSessionProfile();
+  if (!profile) redirect("/login?next=/manager");
+  if (profile.role !== "manager" && profile.role !== "admin") redirect("/dashboard");
+  return profile;
+}

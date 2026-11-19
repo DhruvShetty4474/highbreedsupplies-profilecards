@@ -133,9 +133,11 @@ export const profiles = sqliteTable(
       accent?: string;
       surface?: string;
     }>(),
-    role: text("role", { enum: ["admin", "client"] })
+    role: text("role", { enum: ["admin", "manager", "client"] })
       .notNull()
       .default("client"),
+    /** Manager who referred this customer (set when their card is reserved). */
+    referred_by: text("referred_by"),
     // Share page preferences (previously in-memory)
     share_offline: integer("share_offline", { mode: "boolean" })
       .notNull()
@@ -148,7 +150,10 @@ export const profiles = sqliteTable(
     created_at: text("created_at").notNull().default(nowIso),
     updated_at: text("updated_at").notNull().default(nowIso),
   },
-  (t) => [index("idx_profiles_role").on(t.role)]
+  (t) => [
+    index("idx_profiles_role").on(t.role),
+    index("idx_profiles_referred_by").on(t.referred_by),
+  ]
 );
 
 export const cardBatches = sqliteTable("card_batches", {
@@ -156,6 +161,10 @@ export const cardBatches = sqliteTable("card_batches", {
   label: text("label").notNull(),
   quantity: integer("quantity").notNull(),
   notes: text("notes"),
+  /** Manager who sells this batch; copied onto each card. */
+  manager_id: text("manager_id").references(() => profiles.user_id, {
+    onDelete: "set null",
+  }),
   created_by: text("created_by").references(() => profiles.user_id, {
     onDelete: "set null",
   }),
@@ -170,13 +179,20 @@ export const cards = sqliteTable(
     nfc_url: text("nfc_url").notNull(),
     qr_url: text("qr_url").notNull(),
     nfc_uid: text("nfc_uid"),
-    status: text("status", { enum: ["UNCLAIMED", "ACTIVE", "BLOCKED"] })
+    /** UNCLAIMED → RESERVED (registered, awaiting payment) → ACTIVE (paid). */
+    status: text("status", {
+      enum: ["UNCLAIMED", "RESERVED", "ACTIVE", "BLOCKED"],
+    })
       .notNull()
       .default("UNCLAIMED"),
     user_id: text("user_id").references(() => profiles.user_id, {
       onDelete: "set null",
     }),
     batch_id: text("batch_id").references(() => cardBatches.batch_id, {
+      onDelete: "set null",
+    }),
+    /** Manager who gets the referral when this card is activated. */
+    manager_id: text("manager_id").references(() => profiles.user_id, {
       onDelete: "set null",
     }),
     programmed_at: text("programmed_at"),
@@ -195,6 +211,7 @@ export const cards = sqliteTable(
     index("idx_cards_status").on(t.status),
     index("idx_cards_user").on(t.user_id),
     index("idx_cards_batch").on(t.batch_id),
+    index("idx_cards_manager").on(t.manager_id),
   ]
 );
 
@@ -263,3 +280,66 @@ export const media = sqliteTable(
   },
   (t) => [index("idx_media_user").on(t.user_id, t.status)]
 );
+
+/**
+ * One order per card activation. Money is stored in paise (integers).
+ * PENDING → PAID (UPI via Razorpay, or CASH approved by the manager).
+ */
+export const orders = sqliteTable(
+  "orders",
+  {
+    id: text("id").primaryKey(),
+    user_id: text("user_id")
+      .notNull()
+      .references(() => user.id, { onDelete: "cascade" }),
+    card_id: text("card_id")
+      .notNull()
+      .references(() => cards.card_id, { onDelete: "cascade" }),
+    manager_id: text("manager_id").references(() => profiles.user_id, {
+      onDelete: "set null",
+    }),
+    status: text("status", { enum: ["PENDING", "PAID", "CANCELLED"] })
+      .notNull()
+      .default("PENDING"),
+    /** Chosen at checkout. CASH = waiting for the manager's code. */
+    method: text("method", { enum: ["UPI", "CASH"] }),
+    /** Price including GST, frozen when the order is created. */
+    amount_paise: integer("amount_paise").notNull(),
+    /** GST rate in basis points (1800 = 18%). */
+    gst_rate_bp: integer("gst_rate_bp").notNull(),
+    // Billing details from the payment form
+    customer_name: text("customer_name").notNull().default(""),
+    customer_phone: text("customer_phone").notNull().default(""),
+    customer_email: text("customer_email").notNull().default(""),
+    customer_gstin: text("customer_gstin"),
+    customer_address: text("customer_address").notNull().default(""),
+    terms_accepted_at: text("terms_accepted_at"),
+    // Razorpay (UPI)
+    razorpay_order_id: text("razorpay_order_id").unique(),
+    razorpay_payment_id: text("razorpay_payment_id").unique(),
+    // Cash: one-time code from the manager (SHA-256, never stored plain)
+    cash_code_hash: text("cash_code_hash"),
+    cash_code_expires_at: text("cash_code_expires_at"),
+    cash_code_attempts: integer("cash_code_attempts").notNull().default(0),
+    cash_approved_by: text("cash_approved_by").references(() => profiles.user_id, {
+      onDelete: "set null",
+    }),
+    /** e.g. HB/2026-27/0001 — assigned once, when paid. */
+    invoice_no: text("invoice_no").unique(),
+    paid_at: text("paid_at"),
+    created_at: text("created_at").notNull().default(nowIso),
+    updated_at: text("updated_at").notNull().default(nowIso),
+  },
+  (t) => [
+    index("idx_orders_user").on(t.user_id),
+    index("idx_orders_card").on(t.card_id, t.status),
+    index("idx_orders_manager").on(t.manager_id, t.status),
+  ]
+);
+
+/** Admin-editable settings (price, GST, seller details on invoices). */
+export const appSettings = sqliteTable("app_settings", {
+  key: text("key").primaryKey(),
+  value: text("value").notNull(),
+  updated_at: text("updated_at").notNull().default(nowIso),
+});

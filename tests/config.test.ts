@@ -24,12 +24,22 @@ describe("config", () => {
 
   it("optional services switch off without keys", () => {
     const c = parseConfig({ BETTER_AUTH_SECRET: SECRET, SENTRY_DSN: "" });
-    expect(c.features).toEqual({ media: false, email: false, sentry: false, google: false });
+    expect(c.features).toEqual({
+      media: false,
+      email: false,
+      sentry: false,
+      google: false,
+      razorpay: false,
+    });
     expect(() =>
       parseConfig({ BETTER_AUTH_SECRET: SECRET, GOOGLE_CLIENT_ID: "id-only" })
     ).toThrow(/GOOGLE_CLIENT_ID and GOOGLE_CLIENT_SECRET/);
+    expect(() =>
+      parseConfig({ BETTER_AUTH_SECRET: SECRET, RAZORPAY_KEY_ID: "rzp_test_x" })
+    ).toThrow(/RAZORPAY_KEY_ID and RAZORPAY_KEY_SECRET/);
     expect(c.MEDIA_QUOTA_MB_PER_USER).toBe(100);
-    expect(c.REQUIRE_EMAIL_VERIFICATION).toBe(false);
+    // Email OTP verification is on unless explicitly turned off.
+    expect(c.REQUIRE_EMAIL_VERIFICATION).toBe(true);
   });
 
   it("parses admin emails and trims the app URL", () => {

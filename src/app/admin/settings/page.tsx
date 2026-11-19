@@ -2,6 +2,9 @@ import { getSessionUser, requireAdminPage } from "@/lib/auth";
 import { AccountSecurity } from "@/components/auth/account-security";
 import { SignOutButton } from "@/components/auth/sign-out-button";
 import { redirect } from "next/navigation";
+import { BusinessSettingsForm } from "@/components/admin/business-settings-form";
+import { getDb } from "@/db";
+import { getSettings } from "@/lib/settings";
 
 export const metadata = { title: "Admin Settings" };
 
@@ -9,6 +12,7 @@ export default async function AdminSettingsPage() {
   const profile = await requireAdminPage();
   const user = await getSessionUser();
   if (!user) redirect("/login");
+  const business = await getSettings(getDb());
 
   return (
     <div className="max-w-2xl">
@@ -16,6 +20,13 @@ export default async function AdminSettingsPage() {
       <p className="mt-2 text-sm text-hb-leaf">
         Session and provisioning preferences for the HIGHBREED console.
       </p>
+      <section className="mt-8 rounded-2xl border border-hb-sand/80 bg-white p-6 shadow-soft">
+        <h2 className="font-display text-2xl text-hb-ink">Pricing &amp; invoices</h2>
+        <p className="mt-1 mb-5 text-sm text-hb-leaf">
+          What customers pay to activate a HighCard, and the seller details printed on every invoice.
+        </p>
+        <BusinessSettingsForm settings={business} />
+      </section>
       <section className="mt-8 rounded-2xl border border-hb-sand/80 bg-white p-6 shadow-soft">
         <p className="text-sm text-hb-forest">
           Signed in as <strong>{profile.email || profile.full_name}</strong>

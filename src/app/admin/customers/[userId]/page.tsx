@@ -3,6 +3,7 @@ import { ProfileWorkbench } from "@/components/dashboard/profile-workbench";
 import { fetchProfileById } from "@/lib/data";
 import { appUrl } from "@/lib/utils";
 import Link from "next/link";
+import { RoleToggle } from "@/components/admin/role-toggle";
 import { notFound } from "next/navigation";
 
 export const metadata = { title: "Edit customer" };
@@ -13,7 +14,7 @@ export default async function AdminEditCustomerPage({ params }: Props) {
   await requireAdminPage();
   const { userId } = await params;
   const profile = await fetchProfileById(userId);
-  if (!profile || profile.role !== "client") notFound();
+  if (!profile || profile.role === "admin") notFound();
 
   return (
     <div>
@@ -34,6 +35,7 @@ export default async function AdminEditCustomerPage({ params }: Props) {
           </p>
         </div>
         <div className="flex flex-wrap gap-2">
+          <RoleToggle userId={profile.user_id} role={profile.role} />
           <Link
             href={`/${profile.username}`}
             target="_blank"

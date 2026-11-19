@@ -1,39 +1,30 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
-import { getDb } from "@/db";
-import { requireUser } from "@/lib/auth";
 import { errorResponse } from "@/lib/api";
-import { claimCard } from "@/lib/cards";
+import { requireUser } from "@/lib/auth";
+import { TOKEN_RE } from "@/lib/cards";
+import { fetchCardByToken } from "@/lib/data";
 
 const bodySchema = z.object({
-  public_token: z.string().min(6),
+  public_token: z.string().min(6).max(64),
 });
 
+/**
+ * "Add a card" from the dashboard. Cards are only activated by paying, so
+ * this just validates the token and sends the user to /activate/<token>.
+ */
 export async function POST(request: Request) {
   try {
     const profile = await requireUser();
-
     const parsed = bodySchema.safeParse(await request.json().catch(() => null));
-    if (!parsed.success) {
-      return NextResponse.json({ error: "Invalid token" }, { status: 400 });
+    const token = parsed.success ? parsed.data.public_token.trim() : "";
+    const card = TOKEN_RE.test(token) ? await fetchCardByToken(token) : null;
+    if (!card) return NextResponse.json({ error: "Card not found" }, { status: 404 });
+    if (card.status === "BLOCKED") return NextResponse.json({ error: "Card is blocked" }, { status: 403 });
+    if (card.user_id && card.user_id !== profile.user_id) {
+      return NextResponse.json({ error: "Card already claimed" }, { status: 409 });
     }
-
-    const result = await claimCard(getDb(), parsed.data.public_token, profile.user_id);
-    if (!result.ok) {
-      const map = {
-        not_found: [404, "Card not found"],
-        blocked: [403, "Card is blocked"],
-        taken: [409, "Card already claimed"],
-      } as const;
-      const [status, error] = map[result.reason];
-      return NextResponse.json({ error }, { status });
-    }
-
-    return NextResponse.json({
-      ok: true,
-      username: profile.username,
-      redirect: `/${profile.username}`,
-    });
+    return NextResponse.json({ ok: true, redirect: `/activate/${card.public_token}` });
   } catch (err) {
     return errorResponse(err);
   }

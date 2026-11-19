@@ -58,6 +58,11 @@ export default async function AdminCustomersPage() {
                 <div className="min-w-0">
                   <p className="truncate font-semibold text-hb-ink">
                     {c.profile.full_name}
+                    {c.profile.role === "manager" ? (
+                      <span className="ml-2 rounded-full bg-hb-mist px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-hb-action">
+                        Manager
+                      </span>
+                    ) : null}
                   </p>
                   <p className="truncate text-xs text-hb-leaf">
                     @{c.profile.username}

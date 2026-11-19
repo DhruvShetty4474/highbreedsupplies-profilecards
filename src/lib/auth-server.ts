@@ -2,10 +2,11 @@ import "server-only";
 import { betterAuth } from "better-auth";
 import { drizzleAdapter } from "better-auth/adapters/drizzle";
 import { nextCookies } from "better-auth/next-js";
+import { emailOTP } from "better-auth/plugins";
 import { eq } from "drizzle-orm";
 import { getConfig } from "@/config";
 import { getDb, schema, type DB } from "@/db";
-import { actionEmail, sendEmail } from "@/lib/email";
+import { actionEmail, otpEmail, sendEmail } from "@/lib/email";
 import { removeMedia } from "@/lib/media";
 import { getMediaStore } from "@/lib/r2";
 import { RESERVED_USERNAMES } from "@/lib/utils";
@@ -35,6 +36,7 @@ export function createAuth(db: DB) {
   const config = getConfig();
   return betterAuth({
     baseURL: config.APP_URL,
+    trustedOrigins: config.trustedOrigins,
     secret: config.BETTER_AUTH_SECRET,
     database: drizzleAdapter(db, {
       provider: "sqlite",
@@ -86,21 +88,12 @@ export function createAuth(db: DB) {
         trustedProviders: ["google"],
       },
     },
+    // Verification is a 6-digit code (emailOTP plugin below replaces the
+    // default link email). Signing in while unverified re-sends a code.
     emailVerification: {
-      sendOnSignUp: true,
+      sendOnSignUp: config.REQUIRE_EMAIL_VERIFICATION,
       sendOnSignIn: config.REQUIRE_EMAIL_VERIFICATION,
       autoSignInAfterVerification: true,
-      sendVerificationEmail: async ({ user, url }) => {
-        await sendEmail(
-          actionEmail({
-            to: user.email,
-            subject: "Verify your HIGHBREED email",
-            intro: "Confirm this email address for your HIGHBREED account.",
-            cta: "Verify email",
-            url,
-          })
-        );
-      },
     },
     user: {
       deleteUser: {
@@ -137,6 +130,9 @@ export function createAuth(db: DB) {
         "/reset-password": { window: 900, max: 5 },
         "/send-verification-email": { window: 900, max: 3 },
         "/change-password": { window: 900, max: 5 },
+        "/email-otp/send-verification-otp": { window: 900, max: 5 },
+        "/email-otp/verify-email": { window: 900, max: 10 },
+        "/sign-in/email-otp": { window: 900, max: 10 },
         "/delete-user": { window: 900, max: 5 },
       },
     },
@@ -164,7 +160,22 @@ export function createAuth(db: DB) {
         },
       },
     },
-    plugins: [nextCookies()],
+    plugins: [
+      emailOTP({
+        otpLength: 6,
+        expiresIn: 10 * 60,
+        allowedAttempts: 5,
+        storeOTP: "hashed",
+        // OTP sign-in is for existing accounts only; new accounts register
+        // through /register (card flow) so they get a username + profile.
+        disableSignUp: true,
+        overrideDefaultEmailVerification: true,
+        sendVerificationOTP: async ({ email, otp, type }) => {
+          await sendEmail(otpEmail({ to: email, otp, type }));
+        },
+      }),
+      nextCookies(),
+    ],
   });
 }
 

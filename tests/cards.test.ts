@@ -12,6 +12,7 @@ import {
   claimCard,
   createBatch,
   generatePublicToken,
+  reserveCard,
   resolveCardView,
   TOKEN_RE,
 } from "@/lib/cards";
@@ -29,6 +30,13 @@ beforeEach(async () => {
 });
 
 const BASE = "https://highfis.com";
+
+/** Register a user and activate the card for them (as a paid order would). */
+async function ownerOf(token: string, username: string) {
+  const u = await registerUser({ username });
+  await claimCard(db, token, await userIdFor(db, u.email));
+  return u;
+}
 
 async function cardRow(cardId: string) {
   return (await db.select().from(schema.cards).where(eq(schema.cards.card_id, cardId)).get())!;
@@ -133,6 +141,7 @@ describe("resolver /c/[token]", () => {
     expect(resolveCardView(null, null)).toEqual({ view: "not_found" });
     expect(resolveCardView(card({}), null).view).toBe("activate");
     expect(resolveCardView(card({ status: "BLOCKED" }), null).view).toBe("blocked");
+    expect(resolveCardView(card({ status: "RESERVED", user_id: "u1" }), null).view).toBe("reserved");
     expect(
       resolveCardView(card({ status: "ACTIVE", user_id: "u1" }), { username: "ana" })
     ).toEqual({ view: "profile", username: "ana" });
@@ -140,7 +149,7 @@ describe("resolver /c/[token]", () => {
     expect(resolveCardView(card({ status: "ACTIVE", user_id: "u1" }), null).view).toBe("not_found");
   });
 
-  it("page: unknown → 404, ACTIVE → redirect to profile, BLOCKED → disabled page, UNCLAIMED → activation", async () => {
+  it("page: unknown → 404, ACTIVE → profile, BLOCKED → disabled, UNCLAIMED → register", async () => {
     const render = (token: string) => CardTokenRouterPage({ params: Promise.resolve({ token }) });
 
     await expect(render("tok_doesnotexistdoesnotexis")).rejects.toThrow("NOT_FOUND");
@@ -149,11 +158,16 @@ describe("resolver /c/[token]", () => {
     const { cards } = await createBatch(db, { quantity: 3, label: "P", createdBy: null, baseUrl: BASE });
     const [unclaimed, active, blocked] = cards;
 
-    const activation = JSON.stringify(await render(unclaimed.public_token));
-    expect(activation).not.toContain("Card disabled");
+    // Scanning a new card opens registration (signed out) or activation.
+    await expect(render(unclaimed.public_token)).rejects.toThrow(
+      `REDIRECT:/register?card=${unclaimed.public_token}`
+    );
+    await registerUser({ username: "scanner" });
+    await expect(render(unclaimed.public_token)).rejects.toThrow(
+      `REDIRECT:/activate/${unclaimed.public_token}`
+    );
 
-    const u = await registerUser({ username: "owner_one", card_token: active.public_token });
-    expect(u.json.card_claimed).toBe(true);
+    await ownerOf(active.public_token, "owner_one");
     signOutBrowser();
     await expect(render(active.public_token)).rejects.toThrow("REDIRECT:/owner_one");
 
@@ -172,7 +186,7 @@ describe("programming verification", () => {
     const [c1, c2] = cards;
 
     // Make c2 ACTIVE first: verify must not reset it to UNCLAIMED.
-    await registerUser({ username: "holder", card_token: c2.public_token });
+    await ownerOf(c2.public_token, "holder");
     await signedInAdmin().catch(() => undefined);
     signOutBrowser();
     const { login } = await import("./helpers/users");
@@ -229,7 +243,7 @@ describe("claiming", () => {
 
   it("claim route: 409 for someone else's card, 403 when blocked, 404 when unknown", async () => {
     const { cards } = await createBatch(db, { quantity: 2, label: "R", createdBy: null, baseUrl: BASE });
-    await registerUser({ username: "first_owner", card_token: cards[0].public_token });
+    await ownerOf(cards[0].public_token, "first_owner");
     await registerUser({ username: "second_try" });
 
     const taken = await claimRoute(req("/api/cards/claim", { body: { public_token: cards[0].public_token } }));
@@ -243,20 +257,22 @@ describe("claiming", () => {
     expect(unknown.status).toBe(404);
   });
 
-  it("signup cannot claim a card that is already active", async () => {
+  it("signup and the claim route never activate a card without payment", async () => {
     const { cards } = await createBatch(db, { quantity: 1, label: "S", createdBy: null, baseUrl: BASE });
-    const a = await registerUser({ username: "early_bird", card_token: cards[0].public_token });
-    const b = await registerUser({ username: "late_bird", card_token: cards[0].public_token });
-    expect(a.json.card_claimed).toBe(true);
-    expect(b.json.card_claimed).toBe(false);
-    expect((await cardRow(cards[0].card_id)).user_id).toBe(await userIdFor(db, a.email));
+    await registerUser({ username: "early_bird" }, { card_token: cards[0].public_token });
+    expect((await cardRow(cards[0].card_id)).status).toBe("UNCLAIMED");
+    const res = await claimRoute(req("/api/cards/claim", { body: { public_token: cards[0].public_token } }));
+    expect(await res.json()).toEqual({ ok: true, redirect: `/activate/${cards[0].public_token}` });
+    expect((await cardRow(cards[0].card_id)).status).toBe("UNCLAIMED");
   });
 });
 
 describe("block / unblock + CSV", () => {
-  it("block → BLOCKED; unblock → ACTIVE if owned else UNCLAIMED", async () => {
-    const { cards } = await createBatch(db, { quantity: 2, label: "B", createdBy: null, baseUrl: BASE });
-    await registerUser({ username: "has_card", card_token: cards[0].public_token });
+  it("block → BLOCKED; unblock → ACTIVE if paid, RESERVED if not, else UNCLAIMED", async () => {
+    const { cards } = await createBatch(db, { quantity: 3, label: "B", createdBy: null, baseUrl: BASE });
+    await ownerOf(cards[0].public_token, "has_card");
+    const waiting = await registerUser({ username: "not_paid" });
+    await reserveCard(db, cards[2].public_token, await userIdFor(db, waiting.email), cards[2].card_id);
     signOutBrowser();
     await signedInAdmin();
 
@@ -268,6 +284,8 @@ describe("block / unblock + CSV", () => {
     expect((await r0.json()).status).toBe("ACTIVE");
     const r1 = await statusRoute(req(`/x`, { body: { action: "unblock" } }), params({ card_id: cards[1].card_id }));
     expect((await r1.json()).status).toBe("UNCLAIMED");
+    const r2 = await statusRoute(req(`/x`, { body: { action: "unblock" } }), params({ card_id: cards[2].card_id }));
+    expect((await r2.json()).status).toBe("RESERVED");
   });
 
   it("CSV export has the required columns and escapes cells", async () => {

@@ -2,7 +2,8 @@ import { requireAdminPage } from "@/lib/auth";
 import { BatchGenerator } from "@/components/admin/batch-generator";
 import { CardRowActions } from "@/components/admin/card-row-actions";
 import { Badge } from "@/components/ui/badge";
-import { fetchAllCards, fetchBatches } from "@/lib/data";
+import { fetchAllCards, fetchBatches, fetchManagers } from "@/lib/data";
+import { BatchManagerSelect } from "@/components/admin/batch-manager-select";
 import type { ProgrammingStatus } from "@/lib/types";
 
 export const metadata = { title: "Admin Cards" };
@@ -21,7 +22,11 @@ const programmingLabel: Record<ProgrammingStatus, string> = {
 
 export default async function AdminCardsPage() {
   await requireAdminPage();
-  const [cards, batches] = await Promise.all([fetchAllCards(), fetchBatches()]);
+  const [cards, batches, managers] = await Promise.all([
+    fetchAllCards(),
+    fetchBatches(),
+    fetchManagers(),
+  ]);
 
   return (
     <main>
@@ -33,7 +38,7 @@ export default async function AdminCardsPage() {
       </p>
 
       <div className="mt-6">
-        <BatchGenerator />
+        <BatchGenerator managers={managers} />
       </div>
 
       {batches.length ? (
@@ -53,12 +58,19 @@ export default async function AdminCardsPage() {
                     {b.batch_id} · {b.quantity} cards · {b.created_at.slice(0, 10)}
                   </p>
                 </div>
-                <a
-                  href={`/api/admin/batches/${b.batch_id}/export`}
-                  className="text-xs font-semibold text-hb-action"
-                >
-                  Export CSV
-                </a>
+                <div className="flex flex-wrap items-center gap-3">
+                  <BatchManagerSelect
+                    batchId={b.batch_id}
+                    managerId={b.manager_id ?? null}
+                    managers={managers}
+                  />
+                  <a
+                    href={`/api/admin/batches/${b.batch_id}/export`}
+                    className="text-xs font-semibold text-hb-action"
+                  >
+                    Export CSV
+                  </a>
+                </div>
               </li>
             ))}
           </ul>

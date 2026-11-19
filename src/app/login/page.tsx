@@ -5,6 +5,7 @@ import { LoginForm } from "@/components/auth/login-form";
 import { HighbreedMark, HighbreedWordmark } from "@/components/brand/logo";
 import { getSessionProfile } from "@/lib/auth";
 import { redirect } from "next/navigation";
+import { homeFor } from "@/lib/roles";
 
 export const metadata = { title: "Sign in" };
 
@@ -21,7 +22,7 @@ export default async function LoginPage({
   if (session) {
     redirect(
       next ||
-        (session.role === "admin" ? "/admin" : "/dashboard")
+        homeFor(session.role)
     );
   }
 
@@ -50,7 +51,7 @@ export default async function LoginPage({
         </div>
         <ul className="relative mt-10 grid max-w-lg gap-3 text-sm text-white/80">
           {[
-            "Client & admin role-based dashboards",
+            "Customer, manager & admin dashboards",
             "Profile block editor with live preview",
             "Factory NFC provisioning & lead CRM",
           ].map((item) => (
@@ -78,8 +79,7 @@ export default async function LoginPage({
               Welcome back
             </h2>
             <p className="mt-2 text-sm leading-relaxed text-hb-leaf">
-              Sign in with your login ID. Your role (admin or customer) is
-              applied automatically from the account.
+              Sign in with your password, or get a one-time code by email.
             </p>
             <div className="mt-8">
               {google ? <GoogleButton next={next || "/dashboard"} /> : null}

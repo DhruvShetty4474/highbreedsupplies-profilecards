@@ -43,7 +43,7 @@ const items: SidebarItem[] = [
     href: "/admin/settings",
     label: "Settings",
     icon: "settings",
-    description: "Session & support",
+    description: "Price, GST, invoice details",
   },
 ];
 
@@ -73,6 +73,9 @@ export default async function AdminLayout({
               </p>
               <p className="text-xs text-white/55">Administrator</p>
             </div>
+            <Link href="/manager" className="block text-xs font-semibold text-hb-mint">
+              All payments (manager view) →
+            </Link>
             <Link
               href="/dashboard"
               className="block text-xs font-semibold text-hb-mint"

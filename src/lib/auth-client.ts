@@ -1,9 +1,10 @@
 "use client";
 
+import { emailOTPClient } from "better-auth/client/plugins";
 import { createAuthClient } from "better-auth/react";
 
 /** Browser client for Better Auth endpoints under /api/auth (same origin). */
-export const authClient = createAuthClient();
+export const authClient = createAuthClient({ plugins: [emailOTPClient()] });
 
 export function authErrorMessage(err: { message?: string; status?: number } | null | undefined) {
   if (!err) return null;

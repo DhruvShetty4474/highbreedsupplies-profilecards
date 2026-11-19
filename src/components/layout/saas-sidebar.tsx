@@ -3,6 +3,7 @@
 import { HighbreedMark } from "@/components/brand/logo";
 import { cn } from "@/lib/utils";
 import {
+  Banknote,
   Cpu,
   CreditCard,
   LayoutDashboard,
@@ -25,7 +26,8 @@ export type SidebarIconName =
   | "users"
   | "settings"
   | "cpu"
-  | "share";
+  | "share"
+  | "banknote";
 
 const ICONS: Record<SidebarIconName, LucideIcon> = {
   layoutDashboard: LayoutDashboard,
@@ -35,6 +37,7 @@ const ICONS: Record<SidebarIconName, LucideIcon> = {
   settings: Settings,
   cpu: Cpu,
   share: Share2,
+  banknote: Banknote,
 };
 
 export type SidebarItem = {

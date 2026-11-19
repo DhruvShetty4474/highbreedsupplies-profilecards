@@ -45,7 +45,7 @@ export function Sheet({ open, onClose, title, children, className }: Props) {
             aria-modal="true"
             aria-label={title}
             className={cn(
-              "relative z-10 w-full max-w-md rounded-t-[28px] border border-white/60 bg-hb-card p-5 shadow-soft sm:rounded-[28px]",
+              "relative z-10 w-full max-w-md rounded-t-[28px] border border-white/60 bg-hb-card p-5 pb-[max(1.25rem,env(safe-area-inset-bottom))] shadow-soft sm:rounded-[28px]",
               className
             )}
             initial={{ y: 40, opacity: 0 }}
