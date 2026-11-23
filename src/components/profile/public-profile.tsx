@@ -30,6 +30,7 @@ type Props = {
   profile: Profile;
   /** Compact preview used inside dashboard workbench only */
   embedded?: boolean;
+  autoSaveContact?: boolean;
   preview?: boolean;
 };
 
@@ -132,10 +133,13 @@ export function PublicProfileView({
   profile,
   preview = false,
   compact = false,
+  autoSaveContact = false,
 }: {
   profile: Profile;
   preview?: boolean;
   compact?: boolean;
+  /** Download the .vcf automatically on first visit (visitors only, not the owner). */
+  autoSaveContact?: boolean;
 }) {
   const [leadOpen, setLeadOpen] = useState(false);
   const layout = resolveLayout(profile);
@@ -148,6 +152,36 @@ export function PublicProfileView({
       body: JSON.stringify({ user_id: profile.user_id, event: "reach" }),
     });
   }, [preview, profile.user_id]);
+
+  // Auto "Save Contact": once per device per profile, shortly after the page opens.
+  useEffect(() => {
+    if (preview || !autoSaveContact || !layout.show_save_contact) return;
+    const key = `hb_vcf_${profile.user_id}`;
+    try {
+      if (window.localStorage.getItem(key)) return;
+    } catch {
+      /* storage blocked: still offer the download */
+    }
+    const t = window.setTimeout(() => {
+      try {
+        window.localStorage.setItem(key, "1");
+      } catch {
+        /* ignore */
+      }
+      const a = document.createElement("a");
+      a.href = `/api/cards/${profile.user_id}/vcard`;
+      a.download = `${profile.username}.vcf`;
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      void fetch("/api/analytics", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ user_id: profile.user_id, event: "contact_save" }),
+      });
+    }, 1200);
+    return () => window.clearTimeout(t);
+  }, [preview, autoSaveContact, layout.show_save_contact, profile.user_id, profile.username]);
 
   const links = useMemo(
     () =>
@@ -572,7 +606,7 @@ export function PublicProfileView({
 }
 
 /** Public route shell: elegant centered card on desktop, full-bleed on mobile — not a fake phone OS chrome. */
-export function PublicProfile({ profile, embedded = false }: Props) {
+export function PublicProfile({ profile, embedded = false, autoSaveContact = false }: Props) {
   if (embedded) {
     return (
       <div className="mx-auto w-[300px] overflow-hidden rounded-[1.75rem] border border-white/25 bg-white shadow-lift">
@@ -588,7 +622,7 @@ export function PublicProfile({ profile, embedded = false }: Props) {
       <div className="pointer-events-none absolute inset-0 opacity-20 [background-image:linear-gradient(rgba(255,255,255,0.04)_1px,transparent_1px),linear-gradient(90deg,rgba(255,255,255,0.04)_1px,transparent_1px)] [background-size:56px_56px]" />
       <div className="relative mx-auto flex min-h-dvh w-full max-w-6xl items-stretch justify-center px-0 py-0 sm:px-6 sm:py-10 lg:items-center lg:py-12">
         <div className="w-full max-w-[440px] overflow-hidden bg-hb-fog shadow-lift sm:rounded-[2rem] sm:border sm:border-hb-gold/25">
-          <PublicProfileView profile={profile} />
+          <PublicProfileView profile={profile} autoSaveContact={autoSaveContact} />
         </div>
       </div>
     </div>
