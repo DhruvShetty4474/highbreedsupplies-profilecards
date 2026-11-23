@@ -7,6 +7,7 @@ import { getSessionProfile } from "@/lib/auth";
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { isAdminRole } from "@/lib/roles";
+import { hasPaidAccess } from "@/lib/access";
 
 const items: SidebarItem[] = [
   {
@@ -58,6 +59,7 @@ export default async function DashboardLayout({
 }) {
   const profile = await getSessionProfile();
   if (!profile) redirect("/login?next=/dashboard");
+  if (!(await hasPaidAccess(profile))) redirect("/activate");
 
   return (
     <div className="min-h-dvh bg-hb-fog">

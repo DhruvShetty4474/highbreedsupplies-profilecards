@@ -4,6 +4,14 @@ import * as schema from "@/db/schema";
 import { POST as loginRoute } from "@/app/api/auth/login/route";
 import { POST as signupRoute } from "@/app/api/auth/signup/route";
 import { req, signOutBrowser } from "./next";
+import { getDb } from "@/db";
+import { createBatch } from "@/lib/cards";
+
+/** Registration needs an unsold HighCard: make one. */
+async function freshCardToken() {
+  const { cards } = await createBatch(getDb(), { quantity: 1, label: "REG", createdBy: null, baseUrl: "https://highfis.com" });
+  return cards[0].public_token;
+}
 
 let n = 0;
 
@@ -18,7 +26,7 @@ export async function registerUser(
     username: over.username ?? `user_${n}`,
     password: over.password ?? "Password@123",
     full_name: `User ${n}`,
-    card_token: over.card_token,
+    card_token: over.card_token ?? (await freshCardToken()),
     ...extra,
   };
   signOutBrowser();

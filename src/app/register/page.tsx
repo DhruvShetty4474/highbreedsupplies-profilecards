@@ -6,7 +6,9 @@ import { getSessionProfile } from "@/lib/auth";
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { homeFor } from "@/lib/roles";
+import { registrableCard } from "@/lib/access";
 
+export const dynamic = "force-dynamic";
 export const metadata = { title: "Create account" };
 
 export default async function RegisterPage({
@@ -22,6 +24,7 @@ export default async function RegisterPage({
   if (session) redirect(activate || sp.next || homeFor(session.role));
 
   const loginHref = activate ? `/login?next=${encodeURIComponent(activate)}` : "/login";
+  const cardOk = Boolean(await registrableCard(sp.card));
 
   return (
     <main className="grid min-h-dvh lg:grid-cols-[1.05fr_0.95fr]">
@@ -78,12 +81,22 @@ export default async function RegisterPage({
                 ? "Create your account to activate this HighCard. We'll email you a code to confirm it's you."
                 : "Use your email and a password. We'll email you a code to confirm it's you."}
             </p>
+            {!cardOk ? (
+              <div className="mt-6 rounded-2xl bg-hb-mist px-5 py-5 text-sm leading-relaxed text-hb-forest" role="status">
+                <p className="font-semibold text-hb-ink">Tap or scan your HighCard to register</p>
+                <p className="mt-1">
+                  New accounts can only be created from a HighCard. Hold the card to the back of your
+                  phone, or scan the QR code on it, and you&apos;ll be brought back here.
+                </p>
+              </div>
+            ) : (
             <div className="mt-8">
               {getConfig().features.google ? (
                 <GoogleButton next={activate ?? "/go"} />
               ) : null}
               <SignupForm cardToken={sp.card} />
             </div>
+            )}
           </div>
           <p className="mt-6 text-center text-sm text-hb-leaf">
             Already have an account?{" "}

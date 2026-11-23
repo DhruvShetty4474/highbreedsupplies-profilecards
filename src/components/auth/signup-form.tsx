@@ -41,6 +41,7 @@ export function SignupForm({ cardToken }: { cardToken?: string }) {
         email: form.get("email"),
         password: form.get("password"),
         full_name: form.get("full_name"),
+        card_token: cardToken,
       }),
     });
     setPending(false);

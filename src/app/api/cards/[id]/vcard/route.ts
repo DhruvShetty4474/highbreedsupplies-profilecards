@@ -2,6 +2,7 @@ import { fetchProfileById, fetchProfileByUsername } from "@/lib/data";
 import { appUrl } from "@/lib/utils";
 import { buildVCard } from "@/lib/vcard";
 import { NextResponse } from "next/server";
+import { hasPaidAccess } from "@/lib/access";
 
 type Params = { params: Promise<{ id: string }> };
 
@@ -13,7 +14,7 @@ export async function GET(_request: Request, { params }: Params) {
     profile = await fetchProfileByUsername(id);
   }
 
-  if (!profile) {
+  if (!profile || !(await hasPaidAccess(profile))) {
     return NextResponse.json({ error: "Profile not found" }, { status: 404 });
   }
 

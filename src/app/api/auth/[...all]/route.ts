@@ -6,5 +6,9 @@ export async function GET(request: Request) {
 }
 
 export async function POST(request: Request) {
+  // Accounts are created only through /api/auth/signup (needs a HighCard).
+  if (new URL(request.url).pathname.startsWith("/api/auth/sign-up")) {
+    return Response.json({ error: "Not available" }, { status: 404 });
+  }
   return getAuth().handler(request);
 }

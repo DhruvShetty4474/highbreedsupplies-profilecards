@@ -4,6 +4,7 @@ import { getConfig } from "@/config";
 import { getDb } from "@/db";
 import { AccountError, registerAndSignIn } from "@/lib/accounts";
 import { PASSWORD_RULE } from "@/lib/password-policy";
+import { registrableCard } from "@/lib/access";
 import { uniqueUsername } from "@/lib/auth-server";
 import { captureException } from "@/lib/monitoring";
 import { clientIp, hitRateLimit, LIMITS } from "@/lib/rate-limit";
@@ -11,6 +12,8 @@ import { clientIp, hitRateLimit, LIMITS } from "@/lib/rate-limit";
 // Note: no `role` field — signup can only ever create a client.
 const bodySchema = z.object({
   email: z.string().email().max(254),
+  /** public_token of the HighCard being activated (required). */
+  card_token: z.string().max(64).optional(),
   password: z.string().min(8).max(128),
   full_name: z.string().min(2).max(120),
   /** Optional: derived from the email when left out (editable later). */
@@ -28,6 +31,14 @@ export async function POST(request: Request) {
     return NextResponse.json(
       { error: "Enter your name, a valid email, and a strong password. " + PASSWORD_RULE },
       { status: 400 }
+    );
+  }
+
+  // Registration is only possible from a HighCard that hasn't been sold yet.
+  if (!(await registrableCard(parsed.data.card_token))) {
+    return NextResponse.json(
+      { error: "Registration is only possible by tapping or scanning a new HighCard." },
+      { status: 403 }
     );
   }
 

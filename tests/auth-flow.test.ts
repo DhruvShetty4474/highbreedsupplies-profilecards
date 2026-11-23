@@ -142,7 +142,7 @@ describe("password strength + one device at a time", () => {
     const direct = await authPost(
       req("/api/auth/sign-up/email", { body: { email: "x2@example.com", password: "weakpass1", name: "X" } })
     );
-    expect(direct.status).toBe(400);
+    expect(direct.status).toBe(404); // raw Better Auth sign-up is closed
   });
 
   it("a new sign-in signs out the previous device", async () => {
