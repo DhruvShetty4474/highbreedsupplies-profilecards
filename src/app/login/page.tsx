@@ -101,6 +101,11 @@ export default async function LoginPage({
             </Link>
             {" · "}Admins can also create customer accounts.
           </p>
+          <nav className="mt-4 flex flex-wrap justify-center gap-4 text-xs text-hb-leaf">
+            <Link href="/privacy">Privacy policy</Link>
+            <Link href="/terms">Terms &amp; conditions</Link>
+            <Link href="/refund">Refund policy</Link>
+          </nav>
         </div>
       </section>
     </main>

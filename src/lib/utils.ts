@@ -40,5 +40,5 @@ export const RESERVED_USERNAMES = new Set([
   "admin", "dashboard", "login", "logout", "signup", "register", "api", "c",
   "auth", "settings", "forgot-password", "reset-password", "verify-email",
   "account", "highbreed", "support", "_next", "go", "manager", "activate",
-  "invoice", "pay", "terms", "privacy",
+  "invoice", "pay", "terms", "privacy", "refund", "contact",
 ]);
