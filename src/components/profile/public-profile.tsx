@@ -167,12 +167,23 @@ export function PublicProfileView({
       } catch {
         /* ignore */
       }
-      const a = document.createElement("a");
-      a.href = `/api/cards/${profile.user_id}/vcard`;
-      a.download = `${profile.username}.vcf`;
-      document.body.appendChild(a);
-      a.click();
-      a.remove();
+      const url = `/api/cards/${profile.user_id}/vcard`;
+      const ua = navigator.userAgent;
+      const isIOS =
+        /iPad|iPhone|iPod/.test(ua) || (ua.includes("Macintosh") && navigator.maxTouchPoints > 1);
+      if (isIOS) {
+        // iPhone/iPad: opening the .vcf shows Apple's "Create New Contact" card.
+        // (A download attribute would only drop it into the Files app.)
+        window.location.href = url;
+      } else {
+        // Android / desktop: download; tapping it opens "Add to contacts".
+        const a = document.createElement("a");
+        a.href = url;
+        a.download = `${profile.username}.vcf`;
+        document.body.appendChild(a);
+        a.click();
+        a.remove();
+      }
       void fetch("/api/analytics", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -491,7 +502,7 @@ export function PublicProfileView({
         {layout.show_quick_actions && quick.length > 0 ? (
           <motion.div
             {...fade(0.22)}
-            className="mt-7 grid grid-cols-4 gap-3 sm:grid-cols-5"
+            className="mt-7 flex flex-wrap justify-center gap-x-4 gap-y-3"
           >
             {quick.map((item) => {
               const Icon = item.icon;
@@ -508,7 +519,7 @@ export function PublicProfileView({
               return preview ? (
                 <div
                   key={item.key}
-                  className="group flex flex-col items-center gap-2"
+                  className="group flex w-16 flex-col items-center gap-2"
                 >
                   {inner}
                 </div>
@@ -522,7 +533,7 @@ export function PublicProfileView({
                       : undefined
                   }
                   rel="noopener noreferrer"
-                  className="group flex flex-col items-center gap-2"
+                  className="group flex w-16 flex-col items-center gap-2"
                 >
                   {inner}
                 </a>
