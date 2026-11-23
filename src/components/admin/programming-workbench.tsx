@@ -6,7 +6,13 @@ import type { Card } from "@/lib/types";
 import { useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 
-export function ProgrammingWorkbench({ cards }: { cards: Card[] }) {
+export function ProgrammingWorkbench({
+  cards,
+  canVerify,
+}: {
+  cards: Card[];
+  canVerify: boolean;
+}) {
   const router = useRouter();
   const [cardId, setCardId] = useState(cards[0]?.card_id ?? "");
   const [payload, setPayload] = useState<Record<string, unknown> | null>(null);
@@ -17,14 +23,16 @@ export function ProgrammingWorkbench({ cards }: { cards: Card[] }) {
 
   async function copyUrl() {
     if (!selected) return;
-    await navigator.clipboard.writeText(selected.nfc_url).catch(() => undefined);
+    await navigator.clipboard
+      .writeText(selected.nfc_url)
+      .catch(() => undefined);
     setCopied(true);
     window.setTimeout(() => setCopied(false), 1500);
   }
 
   const selected = useMemo(
     () => cards.find((c) => c.card_id === cardId),
-    [cards, cardId]
+    [cards, cardId],
   );
 
   async function loadProgrammingData() {
@@ -62,7 +70,7 @@ export function ProgrammingWorkbench({ cards }: { cards: Card[] }) {
     setMessage(
       body.success
         ? "Read-back verified — programming_status = PROGRAMMED. Activation status unchanged."
-        : "Read-back mismatch — programming_status = FAILED. Rewrite the tag and verify again."
+        : "Read-back mismatch — programming_status = FAILED. Rewrite the tag and verify again.",
     );
     router.refresh();
   }
@@ -87,7 +95,11 @@ export function ProgrammingWorkbench({ cards }: { cards: Card[] }) {
             >
               <span>{card.card_id}</span>
               <span className="text-[10px] opacity-80">
-                {card.programming_status === "PROGRAMMED" ? "OK" : card.programming_status === "FAILED" ? "FAIL" : "…"}
+                {card.programming_status === "PROGRAMMED"
+                  ? "OK"
+                  : card.programming_status === "FAILED"
+                    ? "FAIL"
+                    : "…"}
               </span>
             </button>
           ))}
@@ -108,9 +120,16 @@ export function ProgrammingWorkbench({ cards }: { cards: Card[] }) {
               <p className="text-xs font-semibold uppercase tracking-[0.14em] text-hb-leaf">
                 Link to write on the chip
               </p>
-              <p className="mt-1 break-all font-mono text-hb-ink">{selected.nfc_url}</p>
+              <p className="mt-1 break-all font-mono text-hb-ink">
+                {selected.nfc_url}
+              </p>
             </div>
-            <Button type="button" variant="outline" onClick={copyUrl} className="self-start">
+            <Button
+              type="button"
+              variant="outline"
+              onClick={copyUrl}
+              className="self-start"
+            >
               {copied ? "Copied ✓" : "Copy link"}
             </Button>
             <div>
@@ -124,35 +143,39 @@ export function ProgrammingWorkbench({ cards }: { cards: Card[] }) {
           </div>
         ) : null}
 
-        <Button onClick={loadProgrammingData} disabled={!cardId || pending}>
-          Show full programming data (JSON)
-        </Button>
+        {canVerify ? (
+          <>
+            <Button onClick={loadProgrammingData} disabled={!cardId || pending}>
+              Show full programming data (JSON)
+            </Button>
 
-        {payload ? (
-          <pre className="overflow-x-auto rounded-2xl bg-hb-ink p-4 text-xs text-hb-mint">
-            {JSON.stringify(payload, null, 2)}
-          </pre>
-        ) : null}
+            {payload ? (
+              <pre className="overflow-x-auto rounded-2xl bg-hb-ink p-4 text-xs text-hb-mint">
+                {JSON.stringify(payload, null, 2)}
+              </pre>
+            ) : null}
 
-        <Input
-          label="NFC read-back payload"
-          value={readback}
-          onChange={(e) => setReadback(e.target.value)}
-          hint="Tap the card with your writer app's Read, then paste the URL it shows"
-        />
+            <Input
+              label="NFC read-back payload"
+              value={readback}
+              onChange={(e) => setReadback(e.target.value)}
+              hint="Tap the card with your writer app's Read, then paste the URL it shows"
+            />
 
-        <Button
-          variant="secondary"
-          onClick={verify}
-          disabled={!cardId || !readback || pending}
-        >
-          Verify read-back & sync state
-        </Button>
+            <Button
+              variant="secondary"
+              onClick={verify}
+              disabled={!cardId || !readback || pending}
+            >
+              Verify read-back & sync state
+            </Button>
 
-        {message ? (
-          <p className="text-sm text-hb-action" role="status">
-            {message}
-          </p>
+            {message ? (
+              <p className="text-sm text-hb-action" role="status">
+                {message}
+              </p>
+            ) : null}
+          </>
         ) : null}
       </section>
     </div>

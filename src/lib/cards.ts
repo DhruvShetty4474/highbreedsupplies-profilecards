@@ -125,7 +125,7 @@ export async function createBatch(db: DB, opts: NewBatch) {
 
 export type ReserveResult =
   | { ok: true; cardId: string; managerId: string | null }
-  | { ok: false; reason: "not_found" | "blocked" | "taken" | "bad_code" };
+  | { ok: false; reason: "not_found" | "blocked" | "taken" | "bad_code" | "code_used" };
 
 /** Typed activation code, normalised: " k7p2-qx " → "K7P2QX". */
 export function normaliseCardCode(code: string) {
@@ -201,6 +201,8 @@ export async function reserveCard(
     card = (await find())!;
   }
   if (card.status === "BLOCKED") return { ok: false, reason: "blocked" };
+  // Single use: once a card has been activated its code is spent for good.
+  if (card.activated_at && card.user_id !== userId) return { ok: false, reason: "code_used" };
   if (!card.activation_code || normaliseCardCode(code) !== card.activation_code) {
     return { ok: false, reason: "bad_code" };
   }
@@ -247,6 +249,7 @@ export async function claimCard(
     .where(
       and(
         eq(schema.cards.public_token, token),
+        isNull(schema.cards.activated_at),
         or(
           eq(schema.cards.status, "UNCLAIMED"),
           and(eq(schema.cards.status, "RESERVED"), eq(schema.cards.user_id, userId))

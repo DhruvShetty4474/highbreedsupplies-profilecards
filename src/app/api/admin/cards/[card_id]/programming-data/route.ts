@@ -1,5 +1,5 @@
 import { errorResponse } from "@/lib/api";
-import { requireAdmin } from "@/lib/auth";
+import { requireSuperAdmin } from "@/lib/auth";
 import { fetchCardById } from "@/lib/data";
 import { NextResponse } from "next/server";
 
@@ -11,7 +11,7 @@ type Params = { params: Promise<{ card_id: string }> };
  */
 export async function GET(_request: Request, { params }: Params) {
   try {
-    await requireAdmin();
+    await requireSuperAdmin();
   } catch (err) {
     return errorResponse(err);
   }

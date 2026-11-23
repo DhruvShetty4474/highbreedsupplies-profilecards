@@ -124,7 +124,12 @@ export async function fetchBatches() {
 
 /** Admin-only callers. */
 export async function fetchAllCards(): Promise<Card[]> {
-  return getDb().select().from(schema.cards).orderBy(schema.cards.card_id);
+  const rows = await getDb()
+    .select({ card: schema.cards, owner_name: schema.profiles.full_name })
+    .from(schema.cards)
+    .leftJoin(schema.profiles, eq(schema.profiles.user_id, schema.cards.user_id))
+    .orderBy(schema.cards.card_id);
+  return rows.map((r) => ({ ...r.card, owner_name: r.owner_name ?? null }));
 }
 
 export async function fetchLeadsForUser(userId: string): Promise<Lead[]> {

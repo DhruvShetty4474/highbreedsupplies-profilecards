@@ -97,9 +97,18 @@ export default async function AdminCardsPage() {
                 <p className="font-semibold text-hb-ink">
                   {card.card_id}
                   {card.activation_code ? (
-                    <span className="ml-2 rounded bg-hb-mist px-1.5 py-0.5 font-mono text-xs tracking-wider text-hb-forest">
+                    <span
+                      title={card.activated_at ? "Code used — no longer valid" : "Activation code"}
+                      className={`ml-2 rounded bg-hb-mist px-1.5 py-0.5 font-mono text-xs tracking-wider text-hb-forest ${card.activated_at ? "line-through opacity-60" : ""}`}
+                    >
                       {card.activation_code}
                     </span>
+                  ) : null}
+                  {card.activated_at ? (
+                    <span className="ml-2 text-[10px] font-semibold uppercase tracking-wider text-hb-leaf">code used</span>
+                  ) : null}
+                  {card.owner_name ? (
+                    <span className="ml-2 font-normal text-hb-forest">· {card.owner_name}</span>
                   ) : null}
                 </p>
                 <p className="truncate text-xs text-hb-leaf">

@@ -86,6 +86,8 @@ export type Profile = {
 };
 
 export type Card = {
+  /** Filled by fetchAllCards: the registered owner's name. */
+  owner_name?: string | null;
   card_id: string;
   public_token: string;
   nfc_url: string;

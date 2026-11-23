@@ -7,7 +7,7 @@ import Link from "next/link";
 export const metadata = { title: "NFC Programming" };
 
 export default async function AdminProgrammingPage() {
-  await requireAdminPage();
+  const me = await requireAdminPage();
   const cards = await fetchAllCards();
 
   return (
@@ -38,7 +38,7 @@ export default async function AdminProgrammingPage() {
             </Link>
           </div>
         ) : (
-          <ProgrammingWorkbench cards={cards} />
+          <ProgrammingWorkbench cards={cards} canVerify={me.role === "superadmin"} />
         )}
       </div>
     </main>

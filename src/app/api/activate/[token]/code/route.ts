@@ -12,6 +12,7 @@ const ERRORS = {
   not_found: [404, "This card link is not valid."],
   blocked: [403, "This card is disabled. Contact HIGHBREED support."],
   taken: [409, "This card is already registered to another account."],
+  code_used: [409, "This activation code has already been used and is no longer valid."],
   bad_code: [400, "That activation code doesn't match this card. Check the code inside the packaging."],
 } as const;
 

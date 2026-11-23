@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import { z } from "zod";
 import { getDb } from "@/db";
 import { errorResponse } from "@/lib/api";
-import { requireAdmin } from "@/lib/auth";
+import { requireSuperAdmin } from "@/lib/auth";
 import { recordVerification } from "@/lib/cards";
 import { fetchCardById } from "@/lib/data";
 
@@ -19,7 +19,7 @@ const bodySchema = z.object({
  */
 export async function POST(request: Request, { params }: Params) {
   try {
-    const profile = await requireAdmin();
+    const profile = await requireSuperAdmin();
     const { card_id } = await params;
 
     const parsed = bodySchema.safeParse(await request.json().catch(() => null));

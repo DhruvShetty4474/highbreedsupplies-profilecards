@@ -301,3 +301,45 @@ describe("block / unblock + CSV", () => {
     expect(cardsToCsv([{ ...(await cardRow(cards[0].card_id)), nfc_url: 'a,"b"' }])).toContain('"a,""b"""');
   });
 });
+
+describe("super-admin-only programming tools", () => {
+  it("a plain admin can't fetch programming JSON or verify", async () => {
+    const { GET: dataRoute } = await import("@/app/api/admin/cards/[card_id]/programming-data/route");
+    const { cards } = await createBatch(db, { quantity: 1, label: "SA", createdBy: null, baseUrl: BASE });
+    const a = await registerUser({ email: "plainadmin@example.com", username: "plain_admin" });
+    await db.update(schema.profiles).set({ role: "admin" }).where(eq(schema.profiles.email, a.email));
+    const id = cards[0].card_id;
+
+    const v = await verifyRoute(
+      req(`/api/admin/cards/${id}/verify`, { body: { nfc_payload_readback: cards[0].nfc_url } }),
+      params({ card_id: id })
+    );
+    expect(v.status).toBe(403);
+    const d = await dataRoute(req(`/api/admin/cards/${id}/programming-data`), params({ card_id: id }));
+    expect(d.status).toBe(403);
+    expect((await cardRow(id)).programming_status).toBe("UNPROGRAMMED");
+  });
+});
+
+describe("single-use activation code", () => {
+  it("is spent once the card is activated; shows the owner's name", async () => {
+    const { fetchAllCards } = await import("@/lib/data");
+    const { cards } = await createBatch(db, { quantity: 1, label: "ONE", createdBy: null, baseUrl: BASE });
+    const [c] = cards;
+    const first = await registerUser({ email: "first@example.com", username: "first_one" });
+    const firstId = await userIdFor(db, first.email);
+    expect((await reserveCard(db, c.public_token, firstId, c.activation_code!)).ok).toBe(true);
+    await claimCard(db, c.public_token, firstId);
+
+    const second = await registerUser({ email: "second@example.com", username: "second_one" });
+    const r = await reserveCard(db, c.public_token, await userIdFor(db, second.email), c.activation_code!);
+    expect(r).toEqual({ ok: false, reason: "code_used" });
+
+    // Even if an admin unblocks/edits status, an activated card can't be re-claimed by someone else.
+    await db.update(schema.cards).set({ status: "UNCLAIMED" }).where(eq(schema.cards.card_id, c.card_id));
+    expect((await claimCard(db, c.public_token, await userIdFor(db, second.email))).ok).toBe(false);
+
+    const listed = (await fetchAllCards()).find((x) => x.card_id === c.card_id)!;
+    expect(listed.owner_name).toBeTruthy();
+  });
+});
