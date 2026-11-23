@@ -8,6 +8,7 @@ import Link from "next/link";
 import { isAdminRole } from "@/lib/roles";
 import { fetchManagers } from "@/lib/data";
 import { ManagerFilter } from "@/components/manager/manager-filter";
+import { AdminActivateButton } from "@/components/admin/admin-activate-button";
 
 export const metadata = { title: "Manager · Payments" };
 
@@ -100,6 +101,7 @@ export default async function ManagerPaymentsPage({
                 <div className="flex items-center gap-3">
                   <span className="font-semibold">{formatInr(order.amount_paise)}</span>
                   {order.cash_code_hash ? <Badge tone="warn">Code issued</Badge> : null}
+                  {admin ? <AdminActivateButton cardId={order.card_id} label="Mark paid & activate" /> : null}
                   <CashApproveButton
                     orderId={order.id}
                     amount={formatInr(order.amount_paise)}
@@ -125,7 +127,10 @@ export default async function ManagerPaymentsPage({
                   {order.method === "UPI" ? " · UPI started" : ""}
                   {admin ? <> · Manager: {mgrLabel(r)}</> : null}
                 </span>
-                <span className="text-hb-leaf">{when(order.created_at)}</span>
+                <span className="flex items-center gap-3 text-hb-leaf">
+                  {when(order.created_at)}
+                  {admin ? <AdminActivateButton cardId={order.card_id} label="Mark paid & activate" /> : null}
+                </span>
               </li>
             ))}
           </ul>

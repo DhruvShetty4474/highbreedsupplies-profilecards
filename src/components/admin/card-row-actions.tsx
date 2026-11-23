@@ -3,6 +3,7 @@
 import type { CardStatus } from "@/lib/types";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
+import { AdminActivateButton } from "@/components/admin/admin-activate-button";
 
 export function CardRowActions({
   cardId,
@@ -75,6 +76,7 @@ export function CardRowActions({
           JSON
         </a>
       ) : null}
+      {status === "RESERVED" ? <AdminActivateButton cardId={cardId} /> : null}
       {status === "RESERVED" ? (
         <button type="button" onClick={release} disabled={pending} className="text-hb-goldDeep">
           Release

@@ -2,6 +2,7 @@ import { and, desc, eq, isNull } from "drizzle-orm";
 import { alias } from "drizzle-orm/sqlite-core";
 import Link from "next/link";
 import { ManagerFilter } from "@/components/manager/manager-filter";
+import { AdminActivateButton } from "@/components/admin/admin-activate-button";
 import { Badge } from "@/components/ui/badge";
 import { getDb, schema } from "@/db";
 import { requireManagerPage } from "@/lib/auth";
@@ -140,7 +141,14 @@ export default async function ManagerCustomersPage({
                     ) : null}
                     <td className="py-2">{r.card_id ?? "—"}</td>
                     <td className="py-2">
-                      <Badge tone={st.tone}>{st.label}</Badge>
+                      <span className="inline-flex flex-wrap items-center gap-2">
+                        <Badge tone={st.tone}>{st.label}</Badge>
+                        {admin && r.card_status === "RESERVED" && r.card_id ? (
+                          <span className="text-xs">
+                            <AdminActivateButton cardId={r.card_id} />
+                          </span>
+                        ) : null}
+                      </span>
                     </td>
                     <td className="py-2 text-hb-leaf">
                       {new Date(r.created_at).toLocaleDateString("en-IN", { timeZone: "Asia/Kolkata" })}

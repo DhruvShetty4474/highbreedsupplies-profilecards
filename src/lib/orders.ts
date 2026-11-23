@@ -288,3 +288,53 @@ export async function fetchOrdersForManager(db: DB, managerId: string | null) {
   if (managerId === "none") return q.where(isNull(schema.orders.manager_id));
   return managerId ? q.where(eq(schema.orders.manager_id, managerId)) : q;
 }
+
+/**
+ * Admin override: activate a RESERVED card right away (cash received by the
+ * admin, or settled offline). Uses the customer's open order — creating one
+ * from their profile if they never reached the payment form — then marks it
+ * PAID (invoice + ACTIVE card) with the admin as approver.
+ */
+export async function adminActivateCard(db: DB, cardId: string, adminId: string) {
+  const card = await db
+    .select()
+    .from(schema.cards)
+    .where(and(eq(schema.cards.card_id, cardId), isNull(schema.cards.deleted_at)))
+    .get();
+  if (!card || card.status !== "RESERVED" || !card.user_id) {
+    return { ok: false as const, error: "Only a card that is awaiting payment can be activated." };
+  }
+  const { getSettings } = await import("@/lib/settings");
+  const s = await getSettings(db);
+  if (!s.card_price_inr) {
+    const { claimCard } = await import("@/lib/cards");
+    const r = await claimCard(db, card.public_token, card.user_id);
+    return r.ok ? { ok: true as const, orderId: null } : { ok: false as const, error: "Could not activate" };
+  }
+  const order = await openOrder(db, {
+    userId: card.user_id,
+    cardId: card.card_id,
+    managerId: card.manager_id,
+    amountPaise: Math.round(s.card_price_inr * 100),
+    gstRateBp: Math.round(s.gst_rate_percent * 100),
+  });
+  if (!order.customer_name) {
+    const p = await db
+      .select()
+      .from(schema.profiles)
+      .where(eq(schema.profiles.user_id, card.user_id))
+      .get();
+    await db
+      .update(schema.orders)
+      .set({
+        customer_name: p?.full_name || p?.username || "",
+        customer_email: p?.email || "",
+        customer_phone: p?.phone || "",
+        method: "CASH",
+        updated_at: new Date().toISOString(),
+      })
+      .where(eq(schema.orders.id, order.id));
+  }
+  const paid = await markOrderPaid(db, order.id, { method: "CASH", approvedBy: adminId });
+  return paid ? { ok: true as const, orderId: order.id } : { ok: false as const, error: "Already paid" };
+}
