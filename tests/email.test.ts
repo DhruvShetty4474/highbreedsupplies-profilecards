@@ -24,7 +24,8 @@ describe("OTP email template", () => {
     expect(e.subject).toBe("482913 is your HIGHBREED code");
     expect(e.text).toContain("482913");
     expect(e.text).toContain("10 minutes");
-    expect(e.html).toContain("4 8 2 9 1 3");
+    expect(e.html).toContain(">4</td>");
+    expect(e.html).toContain("482913");
     expect(e.html).toContain("Verify your email");
     expect(e.html).toContain("Never share this code");
     expect(e.html).toContain("HIGHBREED");
@@ -68,7 +69,7 @@ describe("Gmail API sender", () => {
     const mime = Buffer.from(raw, "base64url").toString("utf8");
     expect(mime).toContain("From: HIGHBREED SUPPLIES <highbreedsuppliesotp56@gmail.com>");
     expect(mime).toContain("To: cust@example.com");
-    expect(decodePart(mime, "text/html")).toContain("1 2 3 4 5 6");
+    expect(decodePart(mime, "text/html")).toContain(">1</td>");
   });
 
   it("throws (without leaking details) when Gmail rejects the send", async () => {

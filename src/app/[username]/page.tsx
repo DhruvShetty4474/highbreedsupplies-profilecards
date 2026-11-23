@@ -1,6 +1,7 @@
 import { PublicProfile } from "@/components/profile/public-profile";
 import { fetchProfileByUsername } from "@/lib/data";
 import { getSessionProfile } from "@/lib/auth";
+import { recordViewerAsLead } from "@/lib/leads";
 import { RESERVED_USERNAMES as RESERVED } from "@/lib/utils";
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
@@ -35,5 +36,7 @@ export default async function UsernameProfilePage({ params }: Props) {
 
   // Visitors get the contact file automatically; the owner viewing their own page doesn't.
   const viewer = await getSessionProfile().catch(() => null);
+  // Signed-in visitors land in the owner's Contacts automatically.
+  await recordViewerAsLead(profile.user_id, viewer).catch(() => undefined);
   return <PublicProfile profile={profile} autoSaveContact={viewer?.user_id !== profile.user_id} />;
 }

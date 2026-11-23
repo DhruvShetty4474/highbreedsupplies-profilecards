@@ -163,41 +163,53 @@ const BRAND = {
  * Shared email layout: table-based with inline styles so it renders the same
  * in Gmail, Outlook and Apple Mail, light or dark.
  */
-function layout(opts: { preheader: string; heading: string; body: string }) {
+function layout(opts: { preheader: string; heading: string; subheading?: string; body: string }) {
   const site = getConfig().APP_URL.replace(/^https?:\/\//, "");
   const year = new Date().getFullYear();
+  const font = "-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif";
   return `<!doctype html>
 <html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
-<meta name="color-scheme" content="light only"><title>${escapeHtml(opts.heading)}</title></head>
-<body style="margin:0;padding:0;background:#F4F7F5;">
-<div style="display:none;max-height:0;overflow:hidden;opacity:0;">${escapeHtml(opts.preheader)}</div>
-<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:#F4F7F5;padding:24px 12px;">
-<tr><td align="center">
-<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="max-width:520px;background:#ffffff;border-radius:16px;overflow:hidden;border:1px solid ${BRAND.line};font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;">
-  <tr><td style="background:${BRAND.deep};background-image:linear-gradient(135deg,${BRAND.deep},${BRAND.forest});padding:24px 28px;">
-    <div style="font-size:20px;font-weight:700;letter-spacing:2px;color:#ffffff;">HIGHBREED</div>
-    <div style="font-size:10px;letter-spacing:3px;color:${BRAND.gold};margin-top:2px;">SUPPLIES</div>
-  </td></tr>
-  <tr><td style="height:4px;background:${BRAND.gold};line-height:4px;font-size:0;">&nbsp;</td></tr>
-  <tr><td style="padding:32px 28px 8px;color:${BRAND.ink};">
-    <h1 style="margin:0 0 12px;font-size:22px;line-height:1.3;font-weight:700;color:${BRAND.ink};">${escapeHtml(opts.heading)}</h1>
-    ${opts.body}
-  </td></tr>
-  <tr><td style="padding:20px 28px 28px;">
-    <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="border-top:1px solid ${BRAND.line};">
-      <tr><td style="padding-top:16px;font-size:12px;line-height:1.6;color:${BRAND.muted};">
-        This is an automated message from HIGHBREED SUPPLIES — please don't reply.<br>
-        <a href="https://${escapeHtml(site)}" style="color:${BRAND.forest};text-decoration:none;font-weight:600;">${escapeHtml(site)}</a> · © ${year} HIGHBREED SUPPLIES
-      </td></tr>
-    </table>
-  </td></tr>
-</table>
+<meta name="color-scheme" content="light only"><meta name="supported-color-schemes" content="light only">
+<title>${escapeHtml(opts.heading)}</title></head>
+<body style="margin:0;padding:0;background:#EEF3F0;-webkit-text-size-adjust:100%;">
+<div style="display:none;max-height:0;overflow:hidden;opacity:0;mso-hide:all;">${escapeHtml(opts.preheader)}&#8204;&nbsp;&#8204;&nbsp;&#8204;&nbsp;</div>
+<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="background:#EEF3F0;">
+<tr><td align="center" style="padding:28px 12px;">
+  <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="max-width:480px;font-family:${font};">
+    <!-- Brand -->
+    <tr><td align="center" style="padding:0 0 18px;">
+      <table role="presentation" cellpadding="0" cellspacing="0" border="0"><tr>
+        <td align="center" valign="middle" width="40" height="40" style="width:40px;height:40px;background:${BRAND.deep};border-radius:12px;font-size:20px;font-weight:800;color:${BRAND.gold};font-family:${font};">H</td>
+        <td style="padding-left:10px;text-align:left;">
+          <div style="font-size:16px;font-weight:800;letter-spacing:2px;color:${BRAND.deep};line-height:1.1;">HIGHBREED</div>
+          <div style="font-size:9px;font-weight:600;letter-spacing:3px;color:${BRAND.gold};line-height:1.4;">SUPPLIES</div>
+        </td>
+      </tr></table>
+    </td></tr>
+    <!-- Card -->
+    <tr><td style="background:#ffffff;border-radius:20px;border:1px solid ${BRAND.line};overflow:hidden;">
+      <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0">
+        <tr><td style="height:6px;line-height:6px;font-size:0;background:${BRAND.gold};border-radius:20px 20px 0 0;">&nbsp;</td></tr>
+        <tr><td align="center" style="padding:32px 24px 4px;">
+          <h1 style="margin:0;font-size:24px;line-height:1.3;font-weight:800;color:${BRAND.ink};text-align:center;">${escapeHtml(opts.heading)}</h1>
+          ${opts.subheading ? `<p style="margin:8px 0 0;font-size:15px;line-height:1.55;color:${BRAND.muted};text-align:center;">${opts.subheading}</p>` : ""}
+        </td></tr>
+        <tr><td style="padding:20px 24px 28px;">${opts.body}</td></tr>
+      </table>
+    </td></tr>
+    <!-- Footer -->
+    <tr><td align="center" style="padding:20px 16px 0;font-size:12px;line-height:1.7;color:${BRAND.muted};text-align:center;">
+      This is an automated message — please don't reply.<br>
+      <a href="https://${escapeHtml(site)}" style="color:${BRAND.forest};text-decoration:none;font-weight:700;">${escapeHtml(site)}</a>
+      &nbsp;·&nbsp; © ${year} HIGHBREED SUPPLIES
+    </td></tr>
+  </table>
 </td></tr></table>
 </body></html>`;
 }
 
-const p = (html: string) =>
-  `<p style="margin:0 0 16px;font-size:15px;line-height:1.6;color:${BRAND.ink};">${html}</p>`;
+const p = (html: string, align: "left" | "center" = "left") =>
+  `<p style="margin:0 0 14px;font-size:15px;line-height:1.6;color:${BRAND.ink};text-align:${align};">${html}</p>`;
 
 const OTP_PURPOSE = {
   "email-verification": { heading: "Verify your email", action: "finish creating your account" },
@@ -206,6 +218,19 @@ const OTP_PURPOSE = {
   "change-email": { heading: "Confirm your new email", action: "change your email" },
 } as const;
 
+/** The code as one box per digit: centred, never wraps, readable on any phone. */
+function codeBoxes(otp: string) {
+  const cells = otp
+    .split("")
+    .map(
+      (d, i) =>
+        (i ? `<td width="8" style="width:8px;font-size:0;">&nbsp;</td>` : "") +
+        `<td align="center" valign="middle" width="42" height="54" style="width:42px;height:54px;background:${BRAND.mist};border:1px solid #CFE0D7;border-radius:10px;font-family:'SF Mono',Menlo,Consolas,'Courier New',monospace;font-size:28px;font-weight:800;color:${BRAND.deep};text-align:center;">${escapeHtml(d)}</td>`
+    )
+    .join("");
+  return `<table role="presentation" cellpadding="0" cellspacing="0" border="0" align="center" style="margin:0 auto;"><tr>${cells}</tr></table>`;
+}
+
 /** One-time code email (registration, sign-in, ...). Valid 10 minutes. */
 export function otpEmail(opts: {
   to: string;
@@ -213,19 +238,18 @@ export function otpEmail(opts: {
   type: keyof typeof OTP_PURPOSE;
 }): Email {
   const purpose = OTP_PURPOSE[opts.type] ?? { heading: "Your code", action: "continue" };
-  const spaced = opts.otp.split("").join(" ");
   const body =
-    p(`Use this code to ${escapeHtml(purpose.action)}:`) +
-    `<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="margin:8px 0 20px;">
-      <tr><td align="center" style="background:${BRAND.mist};border:1px dashed ${BRAND.forest};border-radius:12px;padding:18px 8px;">
-        <div style="font-family:'SF Mono',Menlo,Consolas,monospace;font-size:34px;font-weight:700;letter-spacing:6px;color:${BRAND.deep};">${escapeHtml(spaced)}</div>
-        <div style="font-size:12px;color:${BRAND.muted};margin-top:6px;">Expires in 10 minutes</div>
+    codeBoxes(opts.otp) +
+    `<p style="margin:14px 0 0;font-size:13px;line-height:1.5;color:${BRAND.muted};text-align:center;">
+      Code: <strong style="font-family:'SF Mono',Menlo,Consolas,monospace;font-size:15px;letter-spacing:1px;color:${BRAND.ink};">${escapeHtml(opts.otp)}</strong>
+      &nbsp;·&nbsp; expires in <strong style="color:${BRAND.ink};">10 minutes</strong>
+    </p>` +
+    `<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="margin:24px 0 0;">
+      <tr><td style="background:#FFF8E6;border:1px solid #F3DFA6;border-radius:12px;padding:14px 16px;font-size:13px;line-height:1.55;color:#5C4A12;">
+        <strong>Never share this code.</strong> HIGHBREED staff and managers will never ask you for it.
       </td></tr>
     </table>` +
-    p(
-      `<strong>Never share this code.</strong> HIGHBREED staff and managers will never ask you for it.`
-    ) +
-    `<p style="margin:0;font-size:13px;line-height:1.6;color:${BRAND.muted};">Didn't ask for this? You can safely ignore this email — nothing changes without the code.</p>`;
+    `<p style="margin:18px 0 0;font-size:13px;line-height:1.6;color:${BRAND.muted};text-align:center;">Didn't ask for this? You can safely ignore this email — nothing changes without the code.</p>`;
 
   return {
     to: opts.to,
@@ -237,6 +261,7 @@ export function otpEmail(opts: {
     html: layout({
       preheader: `${opts.otp} is your code to ${purpose.action}. It expires in 10 minutes.`,
       heading: purpose.heading,
+      subheading: `Enter this code to ${escapeHtml(purpose.action)}.`,
       body,
     }),
   };
@@ -253,10 +278,10 @@ export function actionEmail(opts: {
 }): Email {
   const outro = opts.outro ?? "If you didn't request this, you can ignore this email.";
   const body =
-    p(escapeHtml(opts.intro)) +
-    `<table role="presentation" cellpadding="0" cellspacing="0" style="margin:8px 0 20px;"><tr>
+    p(escapeHtml(opts.intro), "center") +
+    `<table role="presentation" cellpadding="0" cellspacing="0" align="center" style="margin:8px auto 22px;"><tr>
       <td style="border-radius:10px;background:${BRAND.forest};">
-        <a href="${escapeHtml(opts.url)}" style="display:inline-block;padding:13px 22px;font-size:15px;font-weight:600;color:#ffffff;text-decoration:none;border-radius:10px;">${escapeHtml(opts.cta)}</a>
+        <a href="${escapeHtml(opts.url)}" style="display:inline-block;padding:14px 28px;font-size:15px;font-weight:700;color:#ffffff;text-decoration:none;border-radius:10px;">${escapeHtml(opts.cta)}</a>
       </td></tr></table>` +
     `<p style="margin:0 0 12px;font-size:12px;line-height:1.6;color:${BRAND.muted};word-break:break-all;">Button not working? Paste this link into your browser:<br>${escapeHtml(opts.url)}</p>` +
     `<p style="margin:0;font-size:13px;line-height:1.6;color:${BRAND.muted};">${escapeHtml(outro)}</p>`;
