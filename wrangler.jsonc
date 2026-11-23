@@ -8,15 +8,12 @@
     "directory": ".open-next/assets",
     "binding": "ASSETS"
   },
-  // Free https://highbreed.<subdomain>.workers.dev address (testing).
-  "workers_dev": true,
-  // GO-LIVE: once highfis.com shows "Active" in Cloudflare (nameservers
-  // moved from Hostinger), uncomment these routes, set APP_URL below to
-  // https://highfis.com, and redeploy. Wrangler creates DNS + certificates.
-  // "routes": [
-  //   { "pattern": "highfis.com", "custom_domain": true },
-  //   { "pattern": "www.highfis.com", "custom_domain": true }
-  // ],
+  // Live on highfis.com (zone on Cloudflare). The workers.dev test address is off.
+  "workers_dev": false,
+  "routes": [
+    { "pattern": "highfis.com", "custom_domain": true },
+    { "pattern": "www.highfis.com", "custom_domain": true }
+  ],
   "d1_databases": [
     {
       "binding": "DB",
@@ -30,9 +27,8 @@
   // ...) are set with `npx wrangler secret put NAME` — never commit them.
   "vars": {
     "APP_URL": "https://highfis.com",
-    // Lets the workers.dev test address sign in before highfis.com is live.
-    // Remove once the custom domain routes are enabled.
-    "TRUSTED_ORIGINS": "https://highbreed.highbreedsupplies.workers.dev",
+    // www.highfis.com serves the same app; let it sign in too.
+    "TRUSTED_ORIGINS": "https://www.highfis.com",
     "R2_BUCKET_NAME": "highbreed-media",
     "R2_PUBLIC_URL": "https://media.highfis.com",
     "MEDIA_MAX_IMAGE_MB": "5",
