@@ -26,6 +26,12 @@ if (!email || !/^[^\s@']+@[^\s@']+$/.test(email) || !ROLES.includes(role) || !na
   process.exit(1);
 }
 
+// Strong passwords only: 12+ chars with upper, lower, digit and symbol.
+if (password.length < 12 || !/[a-z]/.test(password) || !/[A-Z]/.test(password) || !/[0-9]/.test(password) || !/[^A-Za-z0-9]/.test(password)) {
+  console.error("ACCOUNT_PASSWORD must be 12+ characters with upper, lower, digit and symbol.");
+  process.exit(1);
+}
+
 const q = (v: string) => `'${v.replace(/'/g, "''")}'`;
 const suffix = customAlphabet("abcdefghijkmnpqrstuvwxyz23456789", 8);
 
@@ -42,6 +48,8 @@ async function main() {
     `INSERT OR IGNORE INTO account (id,account_id,provider_id,user_id,password,created_at,updated_at) SELECT ${q(randomUUID())}, id, 'credential', id, ${q(hash)}, ${now}, ${now} FROM user WHERE email=${q(e)} AND NOT EXISTS (SELECT 1 FROM account WHERE user_id=user.id AND provider_id='credential');`,
     `UPDATE account SET password=${q(hash)}, updated_at=${now} WHERE provider_id='credential' AND user_id=(SELECT id FROM user WHERE email=${q(e)});`,
     `INSERT OR IGNORE INTO profiles (user_id,username,full_name,email,role) SELECT id, ${q(username)}, ${q(name)}, ${q(e)}, ${q(role)} FROM user WHERE email=${q(e)};`,
+    // Sign out every existing session so the old password stops working everywhere.
+    `DELETE FROM session WHERE user_id=(SELECT id FROM user WHERE email=${q(e)});`,
     `UPDATE profiles SET role=${q(role)} WHERE user_id=(SELECT id FROM user WHERE email=${q(e)});`,
   ].join("\n");
 
