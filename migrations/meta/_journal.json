@@ -50,6 +50,13 @@
       "when": 1795467690227,
       "tag": "0006_smiling_gunslinger",
       "breakpoints": true
+    },
+    {
+      "idx": 7,
+      "version": "6",
+      "when": 1795469192234,
+      "tag": "0007_stale_sauron",
+      "breakpoints": true
     }
   ]
 }

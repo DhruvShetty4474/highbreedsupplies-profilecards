@@ -121,12 +121,15 @@ describe("change password + delete account", () => {
     );
     expect(change.status).toBe(200);
 
-    const wrong = await authPost(req("/api/auth/delete-user", { body: { password: "nope" } }));
+    const { POST: delRoute } = await import("@/app/api/account/delete/route");
+    const wrong = await delRoute(req("/api/account/delete", { body: { password: "nope" } }));
     expect(wrong.status).toBe(400);
 
-    const del = await authPost(req("/api/auth/delete-user", { body: { password: "Changed@4567" } }));
+    const del = await delRoute(req("/api/account/delete", { body: { password: "Changed@4567" } }));
     expect(del.status).toBe(200);
-    expect((await login("del@example.com", "Changed@4567")).res.status).toBe(401);
+    // Soft delete: the row is kept, but the account can never sign in again.
+    expect((await login("del@example.com", "Changed@4567")).res.status).not.toBe(200);
+    expect(await getSessionProfile()).toBeNull();
   });
 });
 

@@ -138,6 +138,8 @@ export const profiles = sqliteTable(
       .default("client"),
     /** Manager who referred this customer (set when their card is reserved). */
     referred_by: text("referred_by"),
+    /** Soft delete: account hidden and locked, data kept. */
+    deleted_at: text("deleted_at"),
     // Share page preferences (previously in-memory)
     share_offline: integer("share_offline", { mode: "boolean" })
       .notNull()
@@ -202,6 +204,8 @@ export const cards = sqliteTable(
     programmed_at: text("programmed_at"),
     activated_at: text("activated_at"),
     blocked_at: text("blocked_at"),
+    /** Soft delete: hidden from inventory, never resolves, data kept. */
+    deleted_at: text("deleted_at"),
     /** Factory NFC write state — independent of activation `status`. */
     programming_status: text("programming_status", {
       enum: ["UNPROGRAMMED", "PROGRAMMED", "FAILED"],

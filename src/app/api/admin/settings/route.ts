@@ -9,6 +9,7 @@ import { saveSettings } from "@/lib/settings";
 const bodySchema = z.object({
   card_price_inr: z.coerce.number().min(0).max(100_000),
   gst_rate_percent: z.coerce.number().min(0).max(28),
+  free_trial_days: z.coerce.number().int().min(0).max(365).optional(),
   seller_name: z.string().trim().min(2).max(120),
   seller_gstin: z
     .string()

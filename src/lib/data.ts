@@ -1,4 +1,4 @@
-import { count, desc, eq, inArray, sql } from "drizzle-orm";
+import { and, count, desc, eq, inArray, isNull, sql } from "drizzle-orm";
 import { getDb, schema } from "@/db";
 import {
   DEFAULT_PROFILE_LAYOUT,
@@ -39,7 +39,7 @@ export async function fetchProfileByUsername(
   const row = await getDb()
     .select()
     .from(schema.profiles)
-    .where(eq(schema.profiles.username, username.toLowerCase()))
+    .where(and(eq(schema.profiles.username, username.toLowerCase()), isNull(schema.profiles.deleted_at)))
     .get();
   // The super admin has no public page.
   return row && row.role !== "superadmin" ? toProfile(row) : null;
@@ -49,7 +49,7 @@ export async function fetchProfileById(userId: string): Promise<Profile | null> 
   const row = await getDb()
     .select()
     .from(schema.profiles)
-    .where(eq(schema.profiles.user_id, userId))
+    .where(and(eq(schema.profiles.user_id, userId), isNull(schema.profiles.deleted_at)))
     .get();
   return row ? toProfile(row) : null;
 }
@@ -59,7 +59,7 @@ export async function fetchClientProfiles(): Promise<Profile[]> {
   const rows = await getDb()
     .select()
     .from(schema.profiles)
-    .where(inArray(schema.profiles.role, ["client", "manager"]))
+    .where(and(inArray(schema.profiles.role, ["client", "manager"]), isNull(schema.profiles.deleted_at)))
     .orderBy(desc(schema.profiles.created_at));
   return rows.map(toProfile);
 }
@@ -73,7 +73,7 @@ export async function fetchManagers() {
       username: schema.profiles.username,
     })
     .from(schema.profiles)
-    .where(eq(schema.profiles.role, "manager"))
+    .where(and(eq(schema.profiles.role, "manager"), isNull(schema.profiles.deleted_at)))
     .orderBy(schema.profiles.full_name);
 }
 
@@ -82,7 +82,7 @@ export async function fetchCardByToken(token: string): Promise<Card | null> {
     (await getDb()
       .select()
       .from(schema.cards)
-      .where(eq(schema.cards.public_token, token))
+      .where(and(eq(schema.cards.public_token, token), isNull(schema.cards.deleted_at)))
       .get()) ?? null
   );
 }
@@ -92,7 +92,7 @@ export async function fetchCardById(cardId: string): Promise<Card | null> {
     (await getDb()
       .select()
       .from(schema.cards)
-      .where(eq(schema.cards.card_id, cardId))
+      .where(and(eq(schema.cards.card_id, cardId), isNull(schema.cards.deleted_at)))
       .get()) ?? null
   );
 }
@@ -101,7 +101,7 @@ export async function fetchCardsForUser(userId: string): Promise<Card[]> {
   return getDb()
     .select()
     .from(schema.cards)
-    .where(eq(schema.cards.user_id, userId))
+    .where(and(eq(schema.cards.user_id, userId), isNull(schema.cards.deleted_at)))
     .orderBy(schema.cards.card_id);
 }
 
@@ -110,7 +110,7 @@ export async function fetchCardsForBatch(batchId: string): Promise<Card[]> {
   return getDb()
     .select()
     .from(schema.cards)
-    .where(eq(schema.cards.batch_id, batchId))
+    .where(and(eq(schema.cards.batch_id, batchId), isNull(schema.cards.deleted_at)))
     .orderBy(schema.cards.card_id);
 }
 
@@ -128,6 +128,7 @@ export async function fetchAllCards(): Promise<Card[]> {
     .select({ card: schema.cards, owner_name: schema.profiles.full_name })
     .from(schema.cards)
     .leftJoin(schema.profiles, eq(schema.profiles.user_id, schema.cards.user_id))
+    .where(isNull(schema.cards.deleted_at))
     .orderBy(schema.cards.card_id);
   return rows.map((r) => ({ ...r.card, owner_name: r.owner_name ?? null }));
 }
@@ -212,16 +213,17 @@ export async function fetchAdminMetrics(): Promise<AdminMetrics> {
     db
       .select({ status: schema.cards.status, n: count() })
       .from(schema.cards)
+      .where(isNull(schema.cards.deleted_at))
       .groupBy(schema.cards.status),
     db
       .select({ n: count() })
       .from(schema.cards)
-      .where(eq(schema.cards.programming_status, "PROGRAMMED"))
+      .where(and(eq(schema.cards.programming_status, "PROGRAMMED"), isNull(schema.cards.deleted_at)))
       .get(),
     db
       .select({ n: count() })
       .from(schema.profiles)
-      .where(eq(schema.profiles.role, "client"))
+      .where(and(eq(schema.profiles.role, "client"), isNull(schema.profiles.deleted_at)))
       .get(),
     db.select({ n: count() }).from(schema.leads).get(),
     db.select({ n: count() }).from(schema.cardBatches).get(),

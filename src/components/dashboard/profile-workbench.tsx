@@ -2,7 +2,7 @@
 
 import { MediaPicker } from "@/components/dashboard/media-picker";
 import { BlockUploadButton } from "@/components/dashboard/block-upload-button";
-import { PublicProfile } from "@/components/profile/public-profile";
+import { PreviewPanel, PreviewToggle } from "@/components/dashboard/phone-preview";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -26,7 +26,7 @@ import {
   Trash2,
 } from "lucide-react";
 import Link from "next/link";
-import { FormEvent, useMemo, useState } from "react";
+import { FormEvent, useEffect, useMemo, useState } from "react";
 
 const LAYOUT_TOGGLES: {
   key: keyof Omit<ProfileLayout, "section_order">;
@@ -78,6 +78,23 @@ export function ProfileWorkbench({
       ) as ProfileLayout["section_order"] ?? DEFAULT_PROFILE_LAYOUT.section_order,
   });
   const [pending, setPending] = useState(false);
+  // Preview open/closed is remembered per browser.
+  const [showPreview, setShowPreview] = useState(true);
+  useEffect(() => {
+    try {
+      if (window.localStorage.getItem("hb_preview") === "0") setShowPreview(false);
+    } catch {
+      /* ignore */
+    }
+  }, []);
+  function togglePreview(next = !showPreview) {
+    setShowPreview(next);
+    try {
+      window.localStorage.setItem("hb_preview", next ? "1" : "0");
+    } catch {
+      /* ignore */
+    }
+  }
   const [message, setMessage] = useState<string | null>(null);
 
   const liveProfile = useMemo<Profile>(
@@ -143,11 +160,8 @@ export function ProfileWorkbench({
   }
 
   return (
-    <div className="flex min-h-[calc(100dvh-2rem)] flex-col gap-8 xl:flex-row xl:gap-0">
-      <form
-        onSubmit={save}
-        className="flex w-full flex-col xl:max-w-[560px] xl:border-r xl:border-hb-sand xl:pr-8"
-      >
+    <div className="flex flex-col gap-8 xl:flex-row xl:items-start">
+      <form onSubmit={save} className="flex w-full min-w-0 flex-1 flex-col">
         <header className="mb-6 flex flex-wrap items-start justify-between gap-4 sm:mb-8">
           <div>
             <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-hb-leaf">
@@ -158,10 +172,11 @@ export function ProfileWorkbench({
             </h1>
             <p className="mt-2 max-w-md text-sm leading-relaxed text-hb-leaf">
               Add a background image, avatar, content blocks, and social links.
-              Preview updates live — desktop on the right, mobile below.
+              The phone preview updates as you type. Hide it for more room.
             </p>
           </div>
           <div className="flex flex-wrap gap-2">
+            <PreviewToggle open={showPreview} onToggle={() => togglePreview()} />
             <button
               type="button"
               className="inline-flex h-10 items-center gap-1.5 rounded-xl border border-hb-sand bg-white px-3 text-xs font-semibold text-hb-forest"
@@ -582,26 +597,7 @@ export function ProfileWorkbench({
         </div>
       </form>
 
-      {/* Mobile / tablet live preview */}
-      <div className="xl:hidden">
-        <p className="mb-3 text-[11px] font-semibold uppercase tracking-[0.18em] text-hb-leaf">
-          Live preview
-        </p>
-        <div className="mx-auto max-w-[390px] overflow-hidden rounded-[28px] border border-hb-sand bg-white shadow-lift">
-          <PublicProfile profile={liveProfile} embedded />
-        </div>
-      </div>
-
-      <aside className="relative hidden flex-1 xl:block">
-        <div className="sticky top-6 flex h-[calc(100dvh-3rem)] flex-col items-center justify-center rounded-3xl border border-hb-gold/20 bg-[radial-gradient(600px_360px_at_50%_0%,rgba(240,201,74,0.22),transparent_55%),linear-gradient(180deg,#0B5C45,#062E24)] p-6 xl:p-8">
-          <p className="mb-5 text-[11px] font-semibold uppercase tracking-[0.2em] text-hb-goldSoft">
-            Live public preview
-          </p>
-          <div className="w-full max-w-[390px] overflow-hidden rounded-[28px] border border-white/10 bg-white shadow-lift">
-            <PublicProfile profile={liveProfile} embedded />
-          </div>
-        </div>
-      </aside>
+      {showPreview ? <PreviewPanel profile={liveProfile} onClose={() => togglePreview(false)} /> : null}
     </div>
   );
 }

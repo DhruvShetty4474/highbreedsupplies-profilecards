@@ -23,11 +23,12 @@ export default async function ActivateHome() {
         <div className="flex justify-center">
           <HighbreedWordmark />
         </div>
-        <h1 className="mt-6 font-display text-3xl text-hb-ink">Activate your HighCard</h1>
+        <h1 className="mt-6 font-display text-3xl text-hb-ink">Your free trial has ended</h1>
         <p className="mt-3 text-sm leading-relaxed text-hb-leaf">
-          Your account is ready, but it has no active card yet. Tap your HighCard on your phone
-          (or scan its QR code), enter the activation code from the packaging and complete the
-          payment. Your profile goes live right after.
+          Your profile and data are safe, but they&apos;re hidden until you activate a HighCard.
+          Get a card from your HIGHBREED manager, tap it on your phone (or scan its QR code),
+          enter the activation code from the packaging and complete the payment. Everything goes
+          live again right away.
         </p>
         <div className="mt-6 flex flex-col items-center gap-3">
           <Link href="/login" className="text-sm font-semibold text-hb-action">

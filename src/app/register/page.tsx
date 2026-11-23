@@ -24,7 +24,8 @@ export default async function RegisterPage({
   if (session) redirect(activate || sp.next || homeFor(session.role));
 
   const loginHref = activate ? `/login?next=${encodeURIComponent(activate)}` : "/login";
-  const cardOk = Boolean(await registrableCard(sp.card));
+  // Same page both ways: no card = free trial; a card link must be an unsold card.
+  const cardOk = !sp.card || Boolean(await registrableCard(sp.card));
 
   return (
     <main className="grid min-h-dvh lg:grid-cols-[1.05fr_0.95fr]">
@@ -79,14 +80,14 @@ export default async function RegisterPage({
             <p className="mt-2 text-sm leading-relaxed text-hb-leaf">
               {activate
                 ? "Create your account to activate this HighCard. We'll email you a code to confirm it's you."
-                : "Use your email and a password. We'll email you a code to confirm it's you."}
+                : "Start with a free trial: use your email and a password. We'll email you a code to confirm it's you."}
             </p>
             {!cardOk ? (
               <div className="mt-6 rounded-2xl bg-hb-mist px-5 py-5 text-sm leading-relaxed text-hb-forest" role="status">
-                <p className="font-semibold text-hb-ink">Tap or scan your HighCard to register</p>
+                <p className="font-semibold text-hb-ink">This HighCard can&apos;t be registered</p>
                 <p className="mt-1">
-                  New accounts can only be created from a HighCard. Hold the card to the back of your
-                  phone, or scan the QR code on it, and you&apos;ll be brought back here.
+                  It&apos;s already in use or doesn&apos;t exist. If you bought this card, contact the
+                  person who sold it to you.
                 </p>
               </div>
             ) : (

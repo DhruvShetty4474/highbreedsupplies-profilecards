@@ -20,6 +20,8 @@ export type BusinessSettings = {
   hsn_code: string;
   /** Short terms shown next to the checkbox on the payment page. */
   terms_text: string;
+  /** Days a user who registered without a card can use the site for free. */
+  free_trial_days: number;
 };
 
 export const DEFAULT_SETTINGS: BusinessSettings = {
@@ -34,10 +36,11 @@ export const DEFAULT_SETTINGS: BusinessSettings = {
   terms_text:
     "Payment is for one HIGHBREED NFC HighCard and its digital profile. " +
     "Cards are non-refundable once activated. Replacement cards are charged separately.",
+  free_trial_days: 7,
 };
 
 const KEYS = Object.keys(DEFAULT_SETTINGS) as (keyof BusinessSettings)[];
-const NUMERIC = new Set<keyof BusinessSettings>(["card_price_inr", "gst_rate_percent"]);
+const NUMERIC = new Set<keyof BusinessSettings>(["card_price_inr", "gst_rate_percent", "free_trial_days"]);
 
 export async function getSettings(db: DB): Promise<BusinessSettings> {
   const rows = await db

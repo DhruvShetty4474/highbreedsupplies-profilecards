@@ -41,6 +41,17 @@ export function BusinessSettingsForm({ settings }: { settings: BusinessSettings 
         required
       />
       <Input
+        name="free_trial_days"
+        type="number"
+        min={0}
+        max={365}
+        step="1"
+        label="Free trial (days)"
+        hint="For people who register without a card. 0 = no free trial."
+        defaultValue={settings.free_trial_days}
+        required
+      />
+      <Input
         name="gst_rate_percent"
         type="number"
         min={0}

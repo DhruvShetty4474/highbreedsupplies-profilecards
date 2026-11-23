@@ -7,9 +7,11 @@ import { useState } from "react";
 export function CardRowActions({
   cardId,
   status,
+  isSuperAdmin = false,
 }: {
   cardId: string;
   status: CardStatus;
+  isSuperAdmin?: boolean;
 }) {
   const router = useRouter();
   const [pending, setPending] = useState(false);
@@ -29,6 +31,19 @@ export function CardRowActions({
       return;
     }
     await send(action);
+  }
+
+  async function remove() {
+    if (!window.confirm(`Delete ${cardId}? It disappears from the inventory and its link stops working. (Kept in records, can be restored.)`)) return;
+    setPending(true);
+    const res = await fetch(`/api/admin/cards/${cardId}`, { method: "DELETE" });
+    setPending(false);
+    if (!res.ok) {
+      const body = (await res.json().catch(() => ({}))) as { error?: string };
+      window.alert(body.error || "Could not delete card");
+      return;
+    }
+    router.refresh();
   }
 
   async function send(action: "block" | "unblock" | "release") {
@@ -55,9 +70,11 @@ export function CardRowActions({
       <a href={`/api/admin/cards/${cardId}/qr?format=png`} className="text-hb-action">
         PNG
       </a>
-      <a href={`/api/admin/cards/${cardId}/programming-data`} className="text-hb-leaf">
-        JSON
-      </a>
+      {isSuperAdmin ? (
+        <a href={`/api/admin/cards/${cardId}/programming-data`} className="text-hb-leaf">
+          JSON
+        </a>
+      ) : null}
       {status === "RESERVED" ? (
         <button type="button" onClick={release} disabled={pending} className="text-hb-goldDeep">
           Release
@@ -71,6 +88,11 @@ export function CardRowActions({
       >
         {pending ? "…" : blocked ? "Unblock" : "Block"}
       </button>
+      {status !== "ACTIVE" && status !== "RESERVED" ? (
+        <button type="button" onClick={remove} disabled={pending} className="text-hb-danger/80 underline-offset-2 hover:underline">
+          Delete
+        </button>
+      ) : null}
     </div>
   );
 }

@@ -34,10 +34,11 @@ export async function POST(request: Request) {
     );
   }
 
-  // Registration is only possible from a HighCard that hasn't been sold yet.
-  if (!(await registrableCard(parsed.data.card_token))) {
+  // Two ways in: the normal link (free trial) or an unsold HighCard (paid).
+  // A card link must point at a real, unsold card.
+  if (parsed.data.card_token && !(await registrableCard(parsed.data.card_token))) {
     return NextResponse.json(
-      { error: "Registration is only possible by tapping or scanning a new HighCard." },
+      { error: "This HighCard can't be registered (already in use or not found)." },
       { status: 403 }
     );
   }

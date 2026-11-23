@@ -7,7 +7,7 @@ import { getSessionProfile } from "@/lib/auth";
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { isAdminRole } from "@/lib/roles";
-import { hasPaidAccess } from "@/lib/access";
+import { accessState } from "@/lib/access";
 
 const items: SidebarItem[] = [
   {
@@ -59,7 +59,9 @@ export default async function DashboardLayout({
 }) {
   const profile = await getSessionProfile();
   if (!profile) redirect("/login?next=/dashboard");
-  if (!(await hasPaidAccess(profile))) redirect("/activate");
+  const access = await accessState(profile);
+  if (access.kind === "card_unpaid") redirect(`/activate/${encodeURIComponent(access.token)}`);
+  if (access.kind === "expired") redirect("/activate");
 
   return (
     <div className="min-h-dvh bg-hb-fog">
@@ -96,6 +98,14 @@ export default async function DashboardLayout({
       />
       <div className="lg:pl-[280px] xl:pl-[300px]">
         <main className="mx-auto w-full max-w-[1400px] px-4 py-6 sm:px-6 lg:px-8">
+          {access.kind === "trial" ? (
+            <div className="mb-5 flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-hb-gold/40 bg-[#FFF8E6] px-4 py-3 text-sm text-[#5C4A12]">
+              <p>
+                <strong>Free trial:</strong> {access.daysLeft} day{access.daysLeft === 1 ? "" : "s"} left.
+                Activate a HighCard to keep your profile live after that.
+              </p>
+            </div>
+          ) : null}
           {children}
         </main>
       </div>

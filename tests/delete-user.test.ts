@@ -22,7 +22,7 @@ const del = (userId: string, confirm: string) =>
   );
 
 describe("admin deletes a user", () => {
-  it("removes the account, blocks/release cards, keeps invoices", async () => {
+  it("soft-deletes: locks the account, blocks/releases cards, keeps data", async () => {
     const { cards } = await createBatch(db, { quantity: 2, label: "DEL", createdBy: null, baseUrl: "https://highfis.com" });
     await registerUser({ email: "gone@example.com", username: "gone_user" });
     const uid = await userIdFor(db, "gone@example.com");
@@ -44,12 +44,16 @@ describe("admin deletes a user", () => {
     expect((await del(uid, "wrong_name")).status).toBe(400);
     expect((await del(uid, "gone_user")).status).toBe(200);
 
-    expect(await db.select().from(schema.user).where(eq(schema.user.id, uid)).get()).toBeUndefined();
-    expect(await db.select().from(schema.profiles).where(eq(schema.profiles.user_id, uid)).get()).toBeUndefined();
-    expect(await db.select().from(schema.leads)).toHaveLength(0);
+    // Soft delete: rows kept, profile marked deleted, sign-in refused.
+    expect(await db.select().from(schema.user).where(eq(schema.user.id, uid)).get()).toBeTruthy();
+    const prof = await db.select().from(schema.profiles).where(eq(schema.profiles.user_id, uid)).get();
+    expect(prof?.deleted_at).toBeTruthy();
+    expect(await db.select().from(schema.leads)).toHaveLength(1);
     const order = await db.select().from(schema.orders).where(eq(schema.orders.id, "ord_paid")).get();
     expect(order?.invoice_no).toBe("HB/2026-27/0001");
-    expect(order?.user_id).toBeNull();
+    expect((await login("gone@example.com")).res.status).not.toBe(200);
+    await login("boss@example.com");
+    expect((await del(uid, "gone_user")).status).toBe(404); // already deleted
     const c0 = await db.select().from(schema.cards).where(eq(schema.cards.card_id, cards[0].card_id)).get();
     const c1 = await db.select().from(schema.cards).where(eq(schema.cards.card_id, cards[1].card_id)).get();
     expect(c0?.status).toBe("BLOCKED");

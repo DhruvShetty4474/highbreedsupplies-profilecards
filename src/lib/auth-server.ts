@@ -9,7 +9,7 @@ import { and, eq, ne } from "drizzle-orm";
 import { getConfig } from "@/config";
 import { getDb, schema, type DB } from "@/db";
 import { actionEmail, otpEmail, sendEmail } from "@/lib/email";
-import { prepareUserDeletion } from "@/lib/delete-user";
+import { isDeletedUser } from "@/lib/delete-user";
 import { RESERVED_USERNAMES } from "@/lib/utils";
 
 /**
@@ -101,14 +101,9 @@ export function createAuth(db: DB) {
       autoSignInAfterVerification: true,
     },
     user: {
+      // Accounts are never hard-deleted: /api/account/delete soft-deletes.
       deleteUser: {
-        enabled: true,
-        // Before the user row goes (profile/leads/media rows cascade):
-        // delete their R2 objects and park their cards as BLOCKED so an
-        // admin decides whether to re-issue them.
-        beforeDelete: async (u) => {
-          await prepareUserDeletion(db, u.id);
-        },
+        enabled: false,
       },
     },
     // Applies to requests through /api/auth/* (reset, change password,
@@ -153,6 +148,12 @@ export function createAuth(db: DB) {
       // One device at a time: a new sign-in signs out every other session.
       session: {
         create: {
+          // Soft-deleted accounts can't sign in again.
+          before: async (s) => {
+            if (await isDeletedUser(db, s.userId)) {
+              throw new APIError("FORBIDDEN", { message: "This account has been deleted." });
+            }
+          },
           after: async (s) => {
             await db
               .delete(schema.session)

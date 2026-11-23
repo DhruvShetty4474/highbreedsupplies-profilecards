@@ -193,7 +193,7 @@ export async function reserveCard(
   code: string
 ): Promise<ReserveResult> {
   const find = () =>
-    db.select().from(schema.cards).where(eq(schema.cards.public_token, token)).get();
+    db.select().from(schema.cards).where(and(eq(schema.cards.public_token, token), isNull(schema.cards.deleted_at))).get();
   let card = await find();
   if (!card) return { ok: false, reason: "not_found" };
   // Someone else's reservation ran out: free the card first.

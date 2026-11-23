@@ -77,12 +77,15 @@ export function AccountSecurity({
       return;
     }
     setBusy("del");
-    const { error } = await authClient.deleteUser({
-      password: String(form.get("password") || ""),
+    const res = await fetch("/api/account/delete", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ password: String(form.get("password") || "") }),
     });
     setBusy(null);
-    if (error) {
-      setDelMsg(error.status === 400 ? "Password is incorrect" : authErrorMessage(error));
+    if (!res.ok) {
+      const j = await res.json().catch(() => ({}));
+      setDelMsg(j.error || "Could not delete account");
       return;
     }
     router.push("/?deleted=1");

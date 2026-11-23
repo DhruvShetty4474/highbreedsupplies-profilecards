@@ -23,13 +23,16 @@ const programmingLabel: Record<ProgrammingStatus, string> = {
 };
 
 export default async function AdminCardsPage() {
-  await requireAdminPage();
+  const me = await requireAdminPage();
   await releaseExpiredReservations(getDb());
   const [cards, batches, managers] = await Promise.all([
     fetchAllCards(),
     fetchBatches(),
     fetchManagers(),
   ]);
+
+  const batchLabel = new Map(batches.map((b) => [b.batch_id, b.label]));
+  const managerName = new Map(managers.map((m) => [m.user_id, m.full_name || `@${m.username}`]));
 
   return (
     <main>
@@ -114,10 +117,17 @@ export default async function AdminCardsPage() {
                 <p className="truncate text-xs text-hb-leaf">
                   {card.public_token} · {programmingLabel[card.programming_status]}
                 </p>
+                <p className="mt-0.5 truncate text-xs text-hb-forest/80">
+                  <span className="font-semibold">Batch:</span>{" "}
+                  {batchLabel.get(card.batch_id ?? "") ?? "—"}
+                  {" · "}
+                  <span className="font-semibold">Manager:</span>{" "}
+                  {managerName.get(card.manager_id ?? "") ?? "none"}
+                </p>
               </div>
               <Badge tone={toneFor(card.status)}>{card.status}</Badge>
               <div className="col-span-2 md:col-span-1">
-                <CardRowActions cardId={card.card_id} status={card.status} />
+                <CardRowActions cardId={card.card_id} status={card.status} isSuperAdmin={me.role === "superadmin"} />
               </div>
             </li>
           ))}

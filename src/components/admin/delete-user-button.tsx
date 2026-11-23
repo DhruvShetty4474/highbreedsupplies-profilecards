@@ -43,16 +43,15 @@ export function DeleteUserButton({ userId, username }: { userId: string; usernam
       </button>
       <Sheet open={open} onClose={() => setOpen(false)} title={`Delete @${username}?`} className="max-w-md">
         <div className="space-y-4 text-sm text-hb-forest">
-          <p>This permanently removes:</p>
-          <ul className="list-disc space-y-1 pl-5">
-            <li>their account, profile, photos and all logins</li>
-            <li>their saved contacts (leads)</li>
-          </ul>
+          <p>
+            The user is signed out, can&apos;t sign in again, and their profile disappears from the
+            site. Their data is <strong>kept</strong> (soft delete), so it can be restored if needed.
+          </p>
           <p>
             Their <strong>active card is blocked</strong> (you can unblock or re-issue it later). An unpaid
             reserved card is released for sale. <strong>Invoices are kept</strong> for tax records.
           </p>
-          <p className="font-semibold text-hb-danger">This can&apos;t be undone.</p>
+
           <Input
             label={`Type ${username} to confirm`}
             value={typed}
@@ -74,7 +73,7 @@ export function DeleteUserButton({ userId, username }: { userId: string; usernam
               onClick={remove}
               className="inline-flex h-11 items-center rounded-2xl bg-hb-danger px-5 font-semibold text-white disabled:opacity-40"
             >
-              {pending ? "Deleting…" : "Delete permanently"}
+              {pending ? "Deleting…" : "Delete user"}
             </button>
           </div>
         </div>
