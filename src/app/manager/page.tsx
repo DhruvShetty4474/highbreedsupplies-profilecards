@@ -6,6 +6,8 @@ import { fetchOrdersForManager, formatInr } from "@/lib/orders";
 import { releaseExpiredReservations } from "@/lib/cards";
 import Link from "next/link";
 import { isAdminRole } from "@/lib/roles";
+import { fetchManagers } from "@/lib/data";
+import { ManagerFilter } from "@/components/manager/manager-filter";
 
 export const metadata = { title: "Manager · Payments" };
 
@@ -21,11 +23,20 @@ function when(iso: string | null) {
     : "—";
 }
 
-export default async function ManagerPaymentsPage() {
+export default async function ManagerPaymentsPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ m?: string }>;
+}) {
   const me = await requireManagerPage();
   await releaseExpiredReservations(getDb());
-  // Admins see every manager's orders.
-  const rows = await fetchOrdersForManager(getDb(), isAdminRole(me.role) ? null : me.user_id);
+  const admin = isAdminRole(me.role);
+  const { m = "" } = await searchParams;
+  // Admins see every manager's orders (or one manager via ?m=); managers only their own.
+  const rows = await fetchOrdersForManager(getDb(), admin ? m || null : me.user_id);
+  const managers = admin ? await fetchManagers() : [];
+  const mgrLabel = (r: { manager_name: string | null; manager_username: string | null }) =>
+    r.manager_name || (r.manager_username ? `@${r.manager_username}` : "No manager");
 
   const cashWaiting = rows.filter((r) => r.order.status === "PENDING" && r.order.method === "CASH");
   const otherPending = rows.filter((r) => r.order.status === "PENDING" && r.order.method !== "CASH");
@@ -45,12 +56,19 @@ export default async function ManagerPaymentsPage() {
   return (
     <div className="space-y-8">
       <header>
-        <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-hb-leaf">Manager</p>
-        <h1 className="mt-1 font-display text-4xl text-hb-ink">Payments</h1>
+        <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-hb-leaf">
+          {admin ? "Admin · all managers" : "Manager"}
+        </p>
+        <h1 className="mt-1 font-display text-4xl text-hb-ink">{admin ? "All payments" : "Payments"}</h1>
         <p className="mt-2 max-w-2xl text-sm text-hb-leaf">
           When a customer pays you cash, tap <b>Approve cash</b> and read them the code. UPI
           payments confirm by themselves.
         </p>
+        {admin ? (
+          <div className="mt-4">
+            <ManagerFilter managers={managers} value={m} />
+          </div>
+        ) : null}
       </header>
 
       <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
@@ -70,12 +88,13 @@ export default async function ManagerPaymentsPage() {
           <p className="mt-4 text-sm text-hb-leaf">Nothing to approve right now.</p>
         ) : (
           <ul className="mt-4 divide-y divide-hb-sand/70">
-            {cashWaiting.map(({ order, full_name }) => (
+            {cashWaiting.map(({ order, full_name, ...r }) => (
               <li key={order.id} className="flex flex-wrap items-center justify-between gap-3 py-3">
                 <div className="min-w-0">
                   <p className="font-semibold text-hb-ink">{order.customer_name || full_name}</p>
                   <p className="text-xs text-hb-leaf">
                     {order.customer_phone} · Card {order.card_id} · {when(order.updated_at)}
+                    {admin ? <> · Manager: {mgrLabel(r)}</> : null}
                   </p>
                 </div>
                 <div className="flex items-center gap-3">
@@ -99,11 +118,12 @@ export default async function ManagerPaymentsPage() {
             Started, not paid yet
           </h2>
           <ul className="mt-4 divide-y divide-hb-sand/70">
-            {otherPending.map(({ order, full_name }) => (
+            {otherPending.map(({ order, full_name, ...r }) => (
               <li key={order.id} className="flex flex-wrap items-center justify-between gap-3 py-3 text-sm">
                 <span>
                   <b>{order.customer_name || full_name}</b> · Card {order.card_id}
                   {order.method === "UPI" ? " · UPI started" : ""}
+                  {admin ? <> · Manager: {mgrLabel(r)}</> : null}
                 </span>
                 <span className="text-hb-leaf">{when(order.created_at)}</span>
               </li>
@@ -125,13 +145,14 @@ export default async function ManagerPaymentsPage() {
                 <tr>
                   <th className="py-2">Invoice</th>
                   <th className="py-2">Customer</th>
+                  {admin ? <th className="py-2">Manager</th> : null}
                   <th className="py-2">Mode</th>
                   <th className="py-2">Paid</th>
                   <th className="py-2 text-right">Amount</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-hb-sand/70">
-                {paid.map(({ order, full_name }) => (
+                {paid.map(({ order, full_name, ...r }) => (
                   <tr key={order.id}>
                     <td className="py-2">
                       <Link href={`/invoice/${order.id}`} className="font-semibold text-hb-action">
@@ -139,6 +160,7 @@ export default async function ManagerPaymentsPage() {
                       </Link>
                     </td>
                     <td className="py-2">{order.customer_name || full_name}</td>
+                    {admin ? <td className="py-2">{mgrLabel(r)}</td> : null}
                     <td className="py-2">{order.method}</td>
                     <td className="py-2">{when(order.paid_at)}</td>
                     <td className="py-2 text-right">{formatInr(order.amount_paise)}</td>

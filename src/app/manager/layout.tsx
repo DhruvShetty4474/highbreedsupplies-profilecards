@@ -42,9 +42,11 @@ export default async function ManagerLayout({ children }: { children: React.Reac
                 {isAdminRole(profile.role) ? "Administrator (all managers)" : "Manager"}
               </p>
             </div>
-            <Link href="/dashboard" className="block text-xs font-semibold text-hb-mint">
-              My own card & profile →
-            </Link>
+            {profile.role === "manager" ? (
+              <Link href="/dashboard" className="block text-xs font-semibold text-hb-mint">
+                My own card & profile →
+              </Link>
+            ) : null}
             {isAdminRole(profile.role) ? (
               <Link href="/admin" className="block text-xs font-semibold text-hb-mint">
                 Admin Console →

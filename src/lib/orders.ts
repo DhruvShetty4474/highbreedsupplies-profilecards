@@ -5,7 +5,8 @@
  *
  * Paying is the only way a card becomes ACTIVE for a customer.
  */
-import { and, desc, eq, inArray, sql } from "drizzle-orm";
+import { and, desc, eq, inArray, isNull, sql } from "drizzle-orm";
+import { alias } from "drizzle-orm/sqlite-core";
 import type { DB } from "@/db";
 import * as schema from "@/db/schema";
 import { claimCard, reserveSequence, rowsAffected } from "@/lib/cards";
@@ -265,16 +266,25 @@ export async function redeemCashCode(
   return paid ? { ok: true } : { ok: false, reason: "already_paid" };
 }
 
+/**
+ * Orders for the payments page. `managerId`: a manager's id, "none" for
+ * orders without a manager, or null for every order (admins).
+ */
 export async function fetchOrdersForManager(db: DB, managerId: string | null) {
+  const mgr = alias(schema.profiles, "mgr");
   const q = db
     .select({
       order: schema.orders,
       username: schema.profiles.username,
       full_name: schema.profiles.full_name,
+      manager_name: mgr.full_name,
+      manager_username: mgr.username,
     })
     .from(schema.orders)
     .leftJoin(schema.profiles, eq(schema.profiles.user_id, schema.orders.user_id))
+    .leftJoin(mgr, eq(mgr.user_id, schema.orders.manager_id))
     .orderBy(desc(schema.orders.created_at))
-    .limit(200);
+    .limit(500);
+  if (managerId === "none") return q.where(isNull(schema.orders.manager_id));
   return managerId ? q.where(eq(schema.orders.manager_id, managerId)) : q;
 }

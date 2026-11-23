@@ -29,6 +29,12 @@ const items: SidebarItem[] = [
     description: "QR, link & Quick Share",
   },
   {
+    href: "/admin/managers",
+    label: "Managers",
+    icon: "users",
+    description: "All managers, payments & customers",
+  },
+  {
     href: "/admin/cards",
     label: "Card inventory",
     icon: "creditCard",
@@ -88,13 +94,7 @@ export default async function AdminLayout({
               <p className="text-xs text-white/55">Administrator</p>
             </div>
             <Link href="/manager" className="block text-xs font-semibold text-hb-mint">
-              All payments (manager view) →
-            </Link>
-            <Link
-              href="/dashboard"
-              className="block text-xs font-semibold text-hb-mint"
-            >
-              Preview customer view →
+              Manager dashboard (all managers) →
             </Link>
             <SignOutButton variant="onDark" />
           </div>
