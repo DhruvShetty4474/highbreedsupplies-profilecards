@@ -41,7 +41,7 @@ const adminCalls = () => [
   ["qr", () => qrRoute(req("/x"), params({ card_id: cardId }))],
   ["create batch", () => createBatchRoute(req("/x", { body: { quantity: 1, batch_label: "Nope" } }))],
   ["list customers", () => listCustomers()],
-  ["create customer", () => createCustomer(req("/x", { body: { login_id: "sneaky", password: "Password123", full_name: "Sneaky" } }))],
+  ["create customer", () => createCustomer(req("/x", { body: { login_id: "sneaky", password: "Password@123", full_name: "Sneaky" } }))],
   ["export", () => exportRoute(req("/x"), params({ batch_id: batchId }))],
 ] as const;
 
@@ -88,7 +88,7 @@ describe("role escalation", () => {
     signOutBrowser();
     const res = await authPost(
       req("/api/auth/sign-up/email", {
-        body: { email: "raw@example.com", password: "Password123", name: "Raw", role: "admin" },
+        body: { email: "raw@example.com", password: "Password@123", name: "Raw", role: "admin" },
       })
     );
     expect(res.status).toBeLessThan(500);

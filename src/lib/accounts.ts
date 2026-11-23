@@ -3,6 +3,7 @@ import { eq } from "drizzle-orm";
 import { getDb, schema } from "@/db";
 import { getAuth } from "@/lib/auth-server";
 import { RESERVED_USERNAMES } from "@/lib/utils";
+import { passwordProblem } from "@/lib/password-policy";
 
 export class AccountError extends Error {
   constructor(public status: number, message: string) {
@@ -18,6 +19,11 @@ export type NewAccount = {
   phone?: string;
   designation?: string;
 };
+
+function assertStrongPassword(password: string) {
+  const problem = passwordProblem(password);
+  if (problem) throw new AccountError(400, problem);
+}
 
 async function assertUsernameFree(username: string) {
   if (RESERVED_USERNAMES.has(username)) {
@@ -58,6 +64,7 @@ async function finishProfile(userId: string, a: NewAccount) {
  * current response by the nextCookies plugin).
  */
 export async function registerAndSignIn(a: NewAccount, headers: Headers) {
+  assertStrongPassword(a.password);
   await assertUsernameFree(a.username);
   await assertEmailFree(a.email);
   const res = await getAuth().api.signUpEmail({
@@ -81,6 +88,7 @@ export async function createAccountAsAdmin(
   a: NewAccount,
   opts: { emailVerified?: boolean } = {}
 ) {
+  assertStrongPassword(a.password);
   await assertUsernameFree(a.username);
   await assertEmailFree(a.email);
   const ctx = await getAuth().$context;

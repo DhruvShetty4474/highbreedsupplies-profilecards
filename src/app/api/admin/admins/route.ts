@@ -43,7 +43,7 @@ export async function POST(request: Request) {
     const parsed = createSchema.safeParse(await request.json().catch(() => null));
     if (!parsed.success) {
       return NextResponse.json(
-        { error: "Enter a name, a valid email and (for a new account) a password of 8+ characters" },
+        { error: "Enter a name, a valid email and (for a new account) a strong password (8+ characters with capital, small, number and special character)" },
         { status: 400 }
       );
     }

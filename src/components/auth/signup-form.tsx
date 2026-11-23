@@ -82,9 +82,9 @@ export function SignupForm({ cardToken }: { cardToken?: string }) {
         name="password"
         type="password"
         label="Create password"
-        placeholder="At least 8 characters"
+        placeholder="e.g. Highfis@2026"
         autoComplete="new-password"
-        minLength={8}
+        minLength={8} pattern="(?=.*[A-Z])(?=.*[a-z])(?=.*[0-9])(?=.*[^A-Za-z0-9]).{8,128}" title="8+ characters with a capital, a small letter, a number and a special character"
         required
       />
       <Input
@@ -92,7 +92,7 @@ export function SignupForm({ cardToken }: { cardToken?: string }) {
         type="password"
         label="Confirm password"
         autoComplete="new-password"
-        minLength={8}
+        minLength={8} pattern="(?=.*[A-Z])(?=.*[a-z])(?=.*[0-9])(?=.*[^A-Za-z0-9]).{8,128}" title="8+ characters with a capital, a small letter, a number and a special character"
         required
       />
       {error ? (

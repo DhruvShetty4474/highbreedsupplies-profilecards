@@ -88,7 +88,7 @@ export function AdminsManager({ admins }: { admins: Admin[] }) {
             name="password"
             type="password"
             label="Password (new accounts only)"
-            minLength={8}
+            minLength={8} pattern="(?=.*[A-Z])(?=.*[a-z])(?=.*[0-9])(?=.*[^A-Za-z0-9]).{8,128}" title="8+ characters with a capital, a small letter, a number and a special character"
             autoComplete="new-password"
           />
           {msg ? (

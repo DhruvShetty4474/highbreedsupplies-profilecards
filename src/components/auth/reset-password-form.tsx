@@ -41,8 +41,8 @@ export function ResetPasswordForm({ token }: { token: string }) {
         name="password"
         type="password"
         label="New password"
-        placeholder="At least 8 characters"
-        minLength={8}
+        placeholder="e.g. Highfis@2026"
+        minLength={8} pattern="(?=.*[A-Z])(?=.*[a-z])(?=.*[0-9])(?=.*[^A-Za-z0-9]).{8,128}" title="8+ characters with a capital, a small letter, a number and a special character"
         maxLength={128}
         autoComplete="new-password"
         required
@@ -51,7 +51,7 @@ export function ResetPasswordForm({ token }: { token: string }) {
         name="confirm"
         type="password"
         label="Confirm new password"
-        minLength={8}
+        minLength={8} pattern="(?=.*[A-Z])(?=.*[a-z])(?=.*[0-9])(?=.*[^A-Za-z0-9]).{8,128}" title="8+ characters with a capital, a small letter, a number and a special character"
         maxLength={128}
         autoComplete="new-password"
         required

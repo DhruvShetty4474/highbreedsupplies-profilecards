@@ -3,6 +3,7 @@ import { z } from "zod";
 import { getConfig } from "@/config";
 import { getDb } from "@/db";
 import { AccountError, registerAndSignIn } from "@/lib/accounts";
+import { PASSWORD_RULE } from "@/lib/password-policy";
 import { uniqueUsername } from "@/lib/auth-server";
 import { captureException } from "@/lib/monitoring";
 import { clientIp, hitRateLimit, LIMITS } from "@/lib/rate-limit";
@@ -25,7 +26,7 @@ export async function POST(request: Request) {
   const parsed = bodySchema.safeParse(await request.json().catch(() => null));
   if (!parsed.success) {
     return NextResponse.json(
-      { error: "Enter your name, a valid email, and a password (8+ characters)" },
+      { error: "Enter your name, a valid email, and a strong password. " + PASSWORD_RULE },
       { status: 400 }
     );
   }

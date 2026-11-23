@@ -84,16 +84,16 @@ describe("password reset", () => {
     const token = new URL(location, "http://x").searchParams.get("token")!;
 
     const reset = await authPost(
-      req("/api/auth/reset-password", { body: { newPassword: "BrandNew456", token } })
+      req("/api/auth/reset-password", { body: { newPassword: "BrandNew@456", token } })
     );
     expect(reset.status).toBe(200);
 
-    expect((await login("reset@example.com", "Password123")).res.status).toBe(401);
-    expect((await login("reset@example.com", "BrandNew456")).res.status).toBe(200);
+    expect((await login("reset@example.com", "Password@123")).res.status).toBe(401);
+    expect((await login("reset@example.com", "BrandNew@456")).res.status).toBe(200);
 
     // A token can't be reused.
     const again = await authPost(
-      req("/api/auth/reset-password", { body: { newPassword: "Another789", token } })
+      req("/api/auth/reset-password", { body: { newPassword: "Another@789", token } })
     );
     expect(again.status).toBe(400);
   });
@@ -115,7 +115,7 @@ describe("change password + delete account", () => {
     const change = absorbSetCookies(
       await authPost(
         req("/api/auth/change-password", {
-          body: { currentPassword: "Password123", newPassword: "Changed4567" },
+          body: { currentPassword: "Password@123", newPassword: "Changed@4567" },
         })
       )
     );
@@ -124,8 +124,38 @@ describe("change password + delete account", () => {
     const wrong = await authPost(req("/api/auth/delete-user", { body: { password: "nope" } }));
     expect(wrong.status).toBe(400);
 
-    const del = await authPost(req("/api/auth/delete-user", { body: { password: "Changed4567" } }));
+    const del = await authPost(req("/api/auth/delete-user", { body: { password: "Changed@4567" } }));
     expect(del.status).toBe(200);
-    expect((await login("del@example.com", "Changed4567")).res.status).toBe(401);
+    expect((await login("del@example.com", "Changed@4567")).res.status).toBe(401);
+  });
+});
+
+describe("password strength + one device at a time", () => {
+  it("rejects weak passwords everywhere", async () => {
+    for (const weak of ["123123", "password", "Password1", "password@1", "PASSWORD@1", "Pa@1"]) {
+      const r = await registerUser({ email: `w${weak.length}${Math.random()}@example.com`, password: weak });
+      expect(r.res.status).toBe(400);
+    }
+    const ok = await registerUser({ email: "strong@example.com", password: "Strong@123" });
+    expect(ok.res.status).toBeLessThan(300);
+
+    const direct = await authPost(
+      req("/api/auth/sign-up/email", { body: { email: "x2@example.com", password: "weakpass1", name: "X" } })
+    );
+    expect(direct.status).toBe(400);
+  });
+
+  it("a new sign-in signs out the previous device", async () => {
+    await registerUser({ email: "solo@example.com", username: "solo_user" });
+    signOutBrowser();
+    await login("solo@example.com");
+    const first = new Map(jar);
+    signOutBrowser();
+    await login("solo@example.com");
+    expect((await getSessionProfile())?.email).toBe("solo@example.com");
+    // Restore device 1's cookies: its session must be gone.
+    signOutBrowser();
+    for (const [k, v] of first) jar.set(k, v);
+    expect(await getSessionProfile()).toBeNull();
   });
 });

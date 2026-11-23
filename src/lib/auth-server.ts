@@ -3,7 +3,9 @@ import { betterAuth } from "better-auth";
 import { drizzleAdapter } from "better-auth/adapters/drizzle";
 import { nextCookies } from "better-auth/next-js";
 import { emailOTP } from "better-auth/plugins";
-import { eq } from "drizzle-orm";
+import { APIError, createAuthMiddleware } from "better-auth/api";
+import { passwordProblem } from "@/lib/password-policy";
+import { and, eq, ne } from "drizzle-orm";
 import { getConfig } from "@/config";
 import { getDb, schema, type DB } from "@/db";
 import { actionEmail, otpEmail, sendEmail } from "@/lib/email";
@@ -143,7 +145,31 @@ export function createAuth(db: DB) {
     advanced: {
       ipAddress: { ipAddressHeaders: ["cf-connecting-ip", "x-forwarded-for"] },
     },
+    // Strong-password rule for Better Auth's own endpoints (sign-up, reset, change).
+    hooks: {
+      before: createAuthMiddleware(async (ctx) => {
+        const field =
+          ctx.path === "/sign-up/email"
+            ? "password"
+            : ["/reset-password", "/change-password", "/set-password"].includes(ctx.path)
+              ? "newPassword"
+              : null;
+        if (!field) return;
+        const problem = passwordProblem((ctx.body as Record<string, string> | undefined)?.[field] ?? "");
+        if (problem) throw new APIError("BAD_REQUEST", { message: problem });
+      }),
+    },
     databaseHooks: {
+      // One device at a time: a new sign-in signs out every other session.
+      session: {
+        create: {
+          after: async (s) => {
+            await db
+              .delete(schema.session)
+              .where(and(eq(schema.session.userId, s.userId), ne(schema.session.id, s.id)));
+          },
+        },
+      },
       user: {
         create: {
           // Every account gets a profile. Role is decided ONLY here,

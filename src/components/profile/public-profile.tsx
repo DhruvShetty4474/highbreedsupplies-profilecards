@@ -14,7 +14,6 @@ import {
 import { cn } from "@/lib/utils";
 import { motion } from "framer-motion";
 import {
-  Download,
   FileText,
   Globe,
   Mail,
@@ -155,7 +154,7 @@ export function PublicProfileView({
 
   // Auto "Save Contact": once per device per profile, shortly after the page opens.
   useEffect(() => {
-    if (preview || !autoSaveContact || !layout.show_save_contact) return;
+    if (preview || !autoSaveContact) return;
     const key = `hb_vcf_${profile.user_id}`;
     try {
       if (window.localStorage.getItem(key)) return;
@@ -181,7 +180,7 @@ export function PublicProfileView({
       });
     }, 1200);
     return () => window.clearTimeout(t);
-  }, [preview, autoSaveContact, layout.show_save_contact, profile.user_id, profile.username]);
+  }, [preview, autoSaveContact, profile.user_id, profile.username]);
 
   const links = useMemo(
     () =>
@@ -218,17 +217,6 @@ export function PublicProfileView({
     await navigator.clipboard.writeText(url);
   }
 
-  function trackContactSave() {
-    if (preview) return;
-    void fetch("/api/analytics", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        user_id: profile.user_id,
-        event: "contact_save",
-      }),
-    });
-  }
 
   const quick = [
     profile.phone
@@ -483,27 +471,8 @@ export function PublicProfileView({
 
       <div className={cn("px-5 sm:px-6", compact ? "mt-4" : "mt-6")}>
         {/* Primary CTAs */}
-        {(layout.show_save_contact || layout.show_exchange_contact) && (
-          <motion.div {...fade(0.16)} className="grid gap-3 sm:grid-cols-2">
-            {layout.show_save_contact ? (
-              preview ? (
-                <Button className="h-12 w-full text-[15px]" type="button">
-                  <Download className="h-4 w-4" />
-                  Save Contact
-                </Button>
-              ) : (
-                <a
-                  href={`/api/cards/${profile.user_id}/vcard`}
-                  className="block"
-                  onClick={trackContactSave}
-                >
-                  <Button className="h-12 w-full text-[15px]" type="button">
-                    <Download className="h-4 w-4" />
-                    Save Contact
-                  </Button>
-                </a>
-              )
-            ) : null}
+        {layout.show_exchange_contact && (
+          <motion.div {...fade(0.16)} className="grid gap-3">
             {layout.show_exchange_contact ? (
               <Button
                 variant="secondary"

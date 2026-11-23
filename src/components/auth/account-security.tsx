@@ -119,8 +119,8 @@ export function AccountSecurity({
         <h2 className="text-sm font-semibold text-hb-ink">Change password</h2>
         <form className="mt-3 grid gap-3" onSubmit={changePassword}>
           <Input name="current" type="password" label="Current password" autoComplete="current-password" required />
-          <Input name="new" type="password" label="New password" minLength={8} maxLength={128} autoComplete="new-password" required />
-          <Input name="confirm" type="password" label="Confirm new password" minLength={8} maxLength={128} autoComplete="new-password" required />
+          <Input name="new" type="password" label="New password" minLength={8} pattern="(?=.*[A-Z])(?=.*[a-z])(?=.*[0-9])(?=.*[^A-Za-z0-9]).{8,128}" title="8+ characters with a capital, a small letter, a number and a special character" maxLength={128} autoComplete="new-password" required />
+          <Input name="confirm" type="password" label="Confirm new password" minLength={8} pattern="(?=.*[A-Z])(?=.*[a-z])(?=.*[0-9])(?=.*[^A-Za-z0-9]).{8,128}" title="8+ characters with a capital, a small letter, a number and a special character" maxLength={128} autoComplete="new-password" required />
           {pwMsg ? <Notice ok={pwMsg.ok}>{pwMsg.text}</Notice> : null}
           <Button type="submit" disabled={busy === "pw"}>
             {busy === "pw" ? "Saving…" : "Change password"}

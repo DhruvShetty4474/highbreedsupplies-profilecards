@@ -16,7 +16,7 @@ export async function registerUser(
   const body = {
     email: over.email ?? `user${n}@example.com`,
     username: over.username ?? `user_${n}`,
-    password: over.password ?? "Password123",
+    password: over.password ?? "Password@123",
     full_name: `User ${n}`,
     card_token: over.card_token,
     ...extra,
@@ -27,7 +27,7 @@ export async function registerUser(
   return { res, json, ...body };
 }
 
-export async function login(loginId: string, password = "Password123") {
+export async function login(loginId: string, password = "Password@123") {
   signOutBrowser();
   const res = await loginRoute(req("/api/auth/login", { body: { login_id: loginId, password } }));
   return { res, json: await res.json() };

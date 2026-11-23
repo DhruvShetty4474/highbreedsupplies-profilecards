@@ -34,7 +34,6 @@ const LAYOUT_TOGGLES: {
   hint: string;
 }[] = [
   { key: "show_hero", label: "Hero (avatar + banner)", hint: "Top cover & photo" },
-  { key: "show_save_contact", label: "Save Contact", hint: "Downloads .vcf" },
   { key: "show_exchange_contact", label: "Exchange Contact", hint: "Opens lead form" },
   { key: "show_quick_actions", label: "Quick connections", hint: "Call / Text / Email / Maps / Web" },
   { key: "show_about", label: "About Me", hint: "Bio panel" },

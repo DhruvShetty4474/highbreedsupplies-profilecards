@@ -26,7 +26,7 @@ describe("super admin", () => {
   it("only the super admin creates, lists and removes admins", async () => {
     await signedInAdmin(); // boss@example.com = super admin
     const created = await addAdmin(
-      req("/x", { body: { full_name: "Office Admin", email: "office@example.com", password: "Password123" } })
+      req("/x", { body: { full_name: "Office Admin", email: "office@example.com", password: "Password@123" } })
     );
     expect(created.status).toBe(200);
     expect(await roleFor(db, "office@example.com")).toBe("admin");
@@ -36,7 +36,7 @@ describe("super admin", () => {
     // …but can't touch admins, or even see the page.
     expect((await listAdmins()).status).toBe(403);
     expect(
-      (await addAdmin(req("/x", { body: { full_name: "X", email: "x@example.com", password: "Password123" } }))).status
+      (await addAdmin(req("/x", { body: { full_name: "X", email: "x@example.com", password: "Password@123" } }))).status
     ).toBe(403);
     await expect(AdminsPage()).rejects.toThrow("REDIRECT:/admin");
 
