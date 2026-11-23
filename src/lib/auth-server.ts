@@ -9,8 +9,7 @@ import { and, eq, ne } from "drizzle-orm";
 import { getConfig } from "@/config";
 import { getDb, schema, type DB } from "@/db";
 import { actionEmail, otpEmail, sendEmail } from "@/lib/email";
-import { removeMedia } from "@/lib/media";
-import { getMediaStore } from "@/lib/r2";
+import { prepareUserDeletion } from "@/lib/delete-user";
 import { RESERVED_USERNAMES } from "@/lib/utils";
 
 /**
@@ -108,16 +107,7 @@ export function createAuth(db: DB) {
         // delete their R2 objects and park their cards as BLOCKED so an
         // admin decides whether to re-issue them.
         beforeDelete: async (u) => {
-          const rows = await db
-            .select()
-            .from(schema.media)
-            .where(eq(schema.media.user_id, u.id));
-          const store = getMediaStore();
-          if (store && rows.length) await removeMedia(db, store, rows);
-          await db
-            .update(schema.cards)
-            .set({ status: "BLOCKED", blocked_at: new Date().toISOString() })
-            .where(eq(schema.cards.user_id, u.id));
+          await prepareUserDeletion(db, u.id);
         },
       },
     },

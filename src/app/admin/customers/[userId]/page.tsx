@@ -4,6 +4,7 @@ import { fetchProfileById } from "@/lib/data";
 import { appUrl } from "@/lib/utils";
 import Link from "next/link";
 import { RoleToggle } from "@/components/admin/role-toggle";
+import { DeleteUserButton } from "@/components/admin/delete-user-button";
 import { isAdminRole } from "@/lib/roles";
 import { notFound } from "next/navigation";
 
@@ -37,6 +38,7 @@ export default async function AdminEditCustomerPage({ params }: Props) {
         </div>
         <div className="flex flex-wrap gap-2">
           <RoleToggle userId={profile.user_id} role={profile.role} />
+          <DeleteUserButton userId={profile.user_id} username={profile.username} />
           <Link
             href={`/${profile.username}`}
             target="_blank"

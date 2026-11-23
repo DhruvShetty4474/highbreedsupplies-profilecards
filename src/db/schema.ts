@@ -293,9 +293,8 @@ export const orders = sqliteTable(
   "orders",
   {
     id: text("id").primaryKey(),
-    user_id: text("user_id")
-      .notNull()
-      .references(() => user.id, { onDelete: "cascade" }),
+    // Kept (set null) when the customer is deleted: invoices must survive (GST records).
+    user_id: text("user_id").references(() => user.id, { onDelete: "set null" }),
     card_id: text("card_id")
       .notNull()
       .references(() => cards.card_id, { onDelete: "cascade" }),

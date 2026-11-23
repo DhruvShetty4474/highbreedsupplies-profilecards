@@ -161,7 +161,7 @@ export async function markOrderPaid(
     .from(schema.cards)
     .where(eq(schema.cards.card_id, order.card_id))
     .get();
-  if (card) {
+  if (card && order.user_id) {
     const claimed = await claimCard(db, card.token, order.user_id);
     if (!claimed.ok) {
       // Paid but the card was blocked or taken by someone else meanwhile:
